@@ -1,0 +1,7 @@
+{
+  "timestamp": "2026-03-06T23:00:00Z",
+  "level": "INFO",
+  "service": "backend",
+  "message": "Utilisateur authentifié avec succès",
+  "environment": "dev"
+}
