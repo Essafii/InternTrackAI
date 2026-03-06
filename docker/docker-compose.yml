@@ -1,0 +1,22 @@
+version: '3.9'
+services:
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+    ports:
+      - "4200:4200"
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    ports:
+      - "8080:8080"
+
+  ai-service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ai
+    ports:
+      - "8000:8000"
