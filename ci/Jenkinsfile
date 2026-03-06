@@ -1,0 +1,29 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Récupération du code source...'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo 'Construction du projet...'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo 'Exécution des tests...'
+            }
+        }
+
+        stage('Report') {
+            steps {
+                echo 'Génération du rapport...'
+            }
+        }
+    }
+}
