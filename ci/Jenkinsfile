@@ -2,11 +2,6 @@ pipeline {
     agent any
 
     stages {
-        stage('Checkout') {
-            steps {
-                echo 'Récupération du code source...'
-            }
-        }
 
         stage('Build') {
             steps {
@@ -16,14 +11,33 @@ pipeline {
 
         stage('Test') {
             steps {
-                echo 'Exécution des tests...'
+                echo 'Execution des tests...'
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                echo 'Construction des images Docker...'
+                echo 'Frontend image build'
+                echo 'Backend image build'
+                echo 'AI service image build'
             }
         }
 
         stage('Report') {
             steps {
-                echo 'Génération du rapport...'
+                echo 'Generation du rapport...'
             }
+        }
+
+    }
+
+    post {
+        success {
+            echo 'Pipeline execute avec succes.'
+        }
+        failure {
+            echo 'Le pipeline a echoue.'
         }
     }
 }
