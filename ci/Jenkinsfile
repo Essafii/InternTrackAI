@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = 'messafi2/interntrackai-backend:latest'
+    }
+
     stages {
         stage('Build') {
             steps {
@@ -23,24 +27,22 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                echo 'Construction des images Docker...'
-                echo 'Frontend image build'
-                echo 'Backend image build'
-                echo 'AI service image build'
+                bat 'docker build -t %IMAGE_NAME% -f docker/Dockerfile.backend .'
             }
         }
 
         stage('Docker Push') {
             steps {
-                echo 'Preparation du push des images Docker...'
-                echo 'Push vers registre Docker a configurer'
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    bat 'echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin'
+                    bat 'docker push %IMAGE_NAME%'
+                }
             }
         }
 
         stage('Deploy') {
             steps {
                 echo 'Preparation du deploiement...'
-                echo 'Deploiement Kubernetes ou serveur a configurer'
             }
         }
 
@@ -57,6 +59,9 @@ pipeline {
         }
         failure {
             echo 'Le pipeline a echoue.'
+        }
+        always {
+            bat 'docker logout'
         }
     }
 }
