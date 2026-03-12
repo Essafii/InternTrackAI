@@ -42,7 +42,8 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                echo 'Preparation du deploiement...'
+                bat 'kubectl apply -f k8s/deployment.yaml'
+                bat 'kubectl apply -f k8s/service.yaml'
             }
         }
 
