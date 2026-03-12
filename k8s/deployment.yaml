@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: interntrackai-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: interntrackai-backend
+  template:
+    metadata:
+      labels:
+        app: interntrackai-backend
+    spec:
+      containers:
+        - name: backend
+          image: messafi2/interntrackai-backend:latest
+          ports:
+            - containerPort: 8080
