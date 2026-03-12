@@ -40,12 +40,14 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
-            steps {
-                bat 'kubectl apply -f k8s/deployment.yaml'
-                bat 'kubectl apply -f k8s/service.yaml'
-            }
-        }
+       stage('Deploy') {
+    steps {
+        bat 'kubectl --kubeconfig=C:\\Users\\essaf\\.kube\\config config current-context'
+        bat 'kubectl --kubeconfig=C:\\Users\\essaf\\.kube\\config get nodes'
+        bat 'kubectl --kubeconfig=C:\\Users\\essaf\\.kube\\config apply --validate=false -f k8s/deployment.yaml'
+        bat 'kubectl --kubeconfig=C:\\Users\\essaf\\.kube\\config apply --validate=false -f k8s/service.yaml'
+    }
+}
 
         stage('Report') {
             steps {
