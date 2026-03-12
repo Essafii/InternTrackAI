@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     stages {
-
         stage('Build') {
             steps {
                 echo 'Construction du projet...'
@@ -15,6 +14,13 @@ pipeline {
             }
         }
 
+        stage('Security Scan') {
+            steps {
+                echo 'Analyse de securite du projet...'
+                echo 'Verification SAST / dependances / images Docker'
+            }
+        }
+
         stage('Docker Build') {
             steps {
                 echo 'Construction des images Docker...'
@@ -24,12 +30,25 @@ pipeline {
             }
         }
 
+        stage('Docker Push') {
+            steps {
+                echo 'Preparation du push des images Docker...'
+                echo 'Push vers registre Docker a configurer'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Preparation du deploiement...'
+                echo 'Deploiement Kubernetes ou serveur a configurer'
+            }
+        }
+
         stage('Report') {
             steps {
                 echo 'Generation du rapport...'
             }
         }
-
     }
 
     post {
