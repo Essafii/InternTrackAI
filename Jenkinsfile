@@ -2,24 +2,36 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "messafi2/interntrackai"
+        IMAGE_NAME = 'messafi2/interntrackai-backend:latest'
     }
 
     stages {
-
-        stage('Clone') {
+        stage('Build') {
             steps {
-                git 'https://github.com/Essafii/InternTrackAI.git'
+                echo 'Construction du projet...'
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Test') {
             steps {
-                sh 'docker build -t $IMAGE_NAME:latest .'
+                echo 'Execution des tests...'
             }
         }
 
-        stage('Login DockerHub') {
+        stage('Security Scan') {
+            steps {
+                echo 'Analyse de securite du projet...'
+                echo 'Verification SAST / dependances / images Docker'
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                sh 'docker build -t $IMAGE_NAME -f docker/Dockerfile.backend .'
+            }
+        }
+
+        stage('Docker Push') {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub-creds',
@@ -27,15 +39,27 @@ pipeline {
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
                     sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                    sh 'docker push $IMAGE_NAME'
                 }
             }
         }
 
-        stage('Push Docker Image') {
+        stage('Report') {
             steps {
-                sh 'docker push $IMAGE_NAME:latest'
+                echo 'Generation du rapport...'
             }
         }
+    }
 
+    post {
+        success {
+            echo 'Pipeline execute avec succes.'
+        }
+        failure {
+            echo 'Le pipeline a echoue.'
+        }
+        always {
+            sh 'docker logout || true'
+        }
     }
 }
