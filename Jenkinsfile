@@ -34,6 +34,14 @@ pipeline {
             }
         }
 
+        stage('Trivy Scan') {
+            steps {
+                sh '''
+                trivy image --exit-code 0 --no-progress $IMAGE_NAME
+                '''
+            }
+        }
+
         stage('Docker Push') {
             steps {
                 withCredentials([usernamePassword(
