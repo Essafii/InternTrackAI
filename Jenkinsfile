@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'messafi2/interntrackai-backend:latest'
+        IMAGE_NAME = 'zakariael3/interntrackai-backend:latest'
     }
 
     stages {
@@ -27,7 +27,10 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                sh 'docker build -t $IMAGE_NAME -f docker/Dockerfile.backend .'
+                sh '''
+                docker pull eclipse-temurin:17-jdk-alpine
+                docker build --no-cache -t $IMAGE_NAME -f docker/Dockerfile.backend .
+                '''
             }
         }
 
@@ -38,8 +41,10 @@ pipeline {
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                    sh 'docker push $IMAGE_NAME'
+                    sh '''
+                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    docker push $IMAGE_NAME
+                    '''
                 }
             }
         }
