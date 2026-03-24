@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bienvenue sur la Plateforme de Stages</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #0f0f1a;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            padding: 30px 10px;
+        }
+
+        .wrapper {
+            max-width: 620px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: linear-gradient(160deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        /* ── Header ────────────────── */
+        .header {
+            background: linear-gradient(135deg, #6d28d9, #4f46e5);
+            padding: 40px 40px 36px;
+            text-align: center;
+        }
+
+        .header-icon {
+            font-size: 52px;
+            margin-bottom: 12px;
+        }
+
+        .header h1 {
+            color: #fff;
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+        }
+
+        .header p {
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 14px;
+            margin-top: 6px;
+        }
+
+        /* ── Body ──────────────────── */
+        .body {
+            padding: 36px 40px;
+            color: #c8cce0;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .greeting {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+
+        .intro {
+            margin-bottom: 28px;
+        }
+
+        /* ── Section ───────────────── */
+        .section-title {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #818cf8;
+            margin-bottom: 12px;
+        }
+
+        .info-grid {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .info-row {
+            display: flex;
+            align-items: flex-start;
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            flex: 0 0 140px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding-top: 1px;
+        }
+
+        .info-value {
+            flex: 1;
+            color: #e2e8f0;
+            font-weight: 600;
+            font-size: 14px;
+            word-break: break-all;
+        }
+
+        .info-value.accent {
+            color: #a78bfa;
+        }
+
+        .info-value.secret {
+            background: rgba(99, 102, 241, 0.12);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 6px;
+            padding: 4px 10px;
+            display: inline-block;
+            font-family: 'Courier New', monospace;
+            font-size: 15px;
+            color: #c4b5fd;
+            letter-spacing: 0.06em;
+        }
+
+        /* ── Warning ───────────────── */
+        .warning {
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 28px;
+            font-size: 13px;
+            color: #fbbf24;
+        }
+
+        .warning strong {
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        /* ── CTA Button ─────────────── */
+        .cta-wrap {
+            text-align: center;
+            margin: 28px 0;
+        }
+
+        .cta {
+            display: inline-block;
+            background: linear-gradient(135deg, #6d28d9, #4f46e5);
+            color: #fff;
+            text-decoration: none;
+            padding: 16px 40px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+        }
+
+        /* ── Footer ─────────────────── */
+        .footer {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px 40px;
+            text-align: center;
+            font-size: 11px;
+            color: #475569;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrapper">
+        <div class="card">
+            <!-- Header -->
+            <div class="header">
+                <div class="header-icon">🎓</div>
+                <h1>Bienvenue sur InternShip Platform !</h1>
+                <p>Votre espace de stage est prêt — accédez-y dès maintenant</p>
+            </div>
+
+            <!-- Body -->
+            <div class="body">
+                <p class="greeting">Bonjour <span th:text="${fullName}">Prénom Nom</span> 👋</p>
+                <p class="intro">
+                    Votre compte stagiaire vient d'être créé avec succès.
+                    Retrouvez ci-dessous toutes les informations dont vous avez besoin pour démarrer.
+                </p>
+
+                <!-- Identifiants -->
+                <p class="section-title">🔐 Identifiants de connexion</p>
+                <div class="info-grid">
+                    <div class="info-row">
+                        <span class="info-label">Identifiant</span>
+                        <span class="info-value" th:text="${email}">email@example.com</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Mot de passe</span>
+                        <span class="info-value"><span class="secret" th:text="${password}">mot2passe</span></span>
+                    </div>
+                </div>
+
+                <!-- Informations stage -->
+                <p class="section-title">📋 Informations de stage</p>
+                <div class="info-grid">
+                    <div class="info-row">
+                        <span class="info-label">Sujet</span>
+                        <span class="info-value accent" th:text="${sujet}">Sujet du stage</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Date de début</span>
+                        <span class="info-value" th:text="${dateDebut}">01/01/2026</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Date de fin</span>
+                        <span class="info-value" th:text="${dateFin}">30/06/2026</span>
+                    </div>
+                    <div class="info-row" th:if="${encadrant != null and !encadrant.isEmpty()}">
+                        <span class="info-label">Encadrant</span>
+                        <span class="info-value" th:text="${encadrant}">Nom Encadrant</span>
+                    </div>
+                </div>
+
+                <!-- Avertissement mot de passe -->
+                <div class="warning">
+                    <strong>⚠️ Sécurité — Action requise</strong>
+                    Veuillez vous connecter et <strong>modifier votre mot de passe dès la première connexion</strong>
+                    pour sécuriser votre compte.
+                </div>
+
+                <!-- CTA -->
+                <div class="cta-wrap">
+                    <a th:href="${platformUrl}" href="#" class="cta">
+                        🚀 Accéder à la plateforme
+                    </a>
+                </div>
+
+                <p style="font-size:13px; color:#64748b; text-align:center;">
+                    Lien : <a th:href="${platformUrl}" th:text="${platformUrl}"
+                        style="color:#818cf8;">http://localhost:5173</a>
+                </p>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+                <p>InternShip Platform — Email envoyé automatiquement, merci de ne pas y répondre.</p>
+                <p style="margin-top:6px;">© 2026 InternShip Platform. Tous droits réservés.</p>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

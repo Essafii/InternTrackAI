@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Livrable évalué – InternShip Platform</title>
+</head>
+
+<body style="margin:0;padding:0;background:#0a0a0a;font-family:'Segoe UI',Arial,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;padding:40px 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0"
+                    style="background:#111;border:1px solid rgba(255,255,255,0.08);border-radius:16px;overflow:hidden;">
+                    <!-- Header -->
+                    <tr>
+                        <td
+                            style="background:linear-gradient(135deg,#603494,#8a4ed6);padding:32px 40px;text-align:center;">
+                            <p style="margin:0;font-size:28px;">📄</p>
+                            <h1 style="margin:12px 0 0;color:#fff;font-size:22px;font-weight:800;">Livrable Évalué</h1>
+                        </td>
+                    </tr>
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding:40px;">
+                            <p style="color:#a1a1aa;font-size:15px;margin:0 0 16px;">Bonjour <strong style="color:#fff;"
+                                    th:text="${fullName}">Prénom</strong>,</p>
+                            <p style="color:#a1a1aa;font-size:15px;margin:0 0 24px;">
+                                Votre livrable a reçu une décision de votre encadrant.
+                            </p>
+                            <!-- Livrable Card -->
+                            <table width="100%" cellpadding="0" cellspacing="0"
+                                style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px 24px;">
+                                <tr>
+                                    <td>
+                                        <p style="margin:0;font-size:16px;font-weight:700;color:#fff;"
+                                            th:text="${titre}">Nom du livrable</p>
+                                        <p style="margin:10px 0 0;font-size:13px;">
+                                            Statut :
+                                            <strong th:style="${statut == 'VALIDE'} ? 'color:#10b981' : 'color:#f87171'"
+                                                th:text="${statut}">VALIDE</strong>
+                                        </p>
+                                        <p th:if="${commentaire}" style="margin:8px 0 0;font-size:13px;color:#a1a1aa;"
+                                            th:text="'Commentaire : ' + ${commentaire}">Commentaire…</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:24px 40px;border-top:1px solid rgba(255,255,255,0.06);text-align:center;">
+                            <p style="color:#52525b;font-size:12px;margin:0;">© 2025 InternShip Platform · Cet email est
+                                envoyé automatiquement.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>

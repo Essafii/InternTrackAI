@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Évaluation validée – InternShip Platform</title>
+</head>
+
+<body style="margin:0;padding:0;background:#0a0a0a;font-family:'Segoe UI',Arial,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;padding:40px 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0"
+                    style="background:#111;border:1px solid rgba(255,255,255,0.08);border-radius:16px;overflow:hidden;">
+                    <!-- Header -->
+                    <tr>
+                        <td
+                            style="background:linear-gradient(135deg,#603494,#8a4ed6);padding:32px 40px;text-align:center;">
+                            <p style="margin:0;font-size:28px;">⭐</p>
+                            <h1 style="margin:12px 0 0;color:#fff;font-size:22px;font-weight:800;">Évaluation Validée
+                            </h1>
+                        </td>
+                    </tr>
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding:40px;">
+                            <p style="color:#a1a1aa;font-size:15px;margin:0 0 16px;">Bonjour <strong style="color:#fff;"
+                                    th:text="${fullName}">Prénom</strong>,</p>
+                            <p style="color:#a1a1aa;font-size:15px;margin:0 0 24px;">
+                                Votre évaluation <strong style="color:#fff;"
+                                    th:text="${typeEvaluation}">Mensuelle</strong> a été validée.
+                            </p>
+                            <!-- Score Card -->
+                            <table width="100%" cellpadding="0" cellspacing="0"
+                                style="background:rgba(96,52,148,0.1);border:1px solid rgba(96,52,148,0.25);border-radius:12px;padding:24px;">
+                                <tr>
+                                    <td align="center">
+                                        <p
+                                            style="margin:0;font-size:13px;color:#a1a1aa;text-transform:uppercase;letter-spacing:0.08em;">
+                                            Note Moyenne</p>
+                                        <p style="margin:8px 0 0;font-size:48px;font-weight:900;color:#8a4ed6;"
+                                            th:text="${noteMoyenne}">15.5</p>
+                                        <p style="margin:4px 0 0;font-size:14px;color:#a1a1aa;">/ 20</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="color:#a1a1aa;font-size:14px;margin:24px 0 0;">
+                                Connectez-vous à la plateforme pour consulter le détail de votre évaluation.
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:24px 40px;border-top:1px solid rgba(255,255,255,0.06);text-align:center;">
+                            <p style="color:#52525b;font-size:12px;margin:0;">© 2025 InternShip Platform · Cet email est
+                                envoyé automatiquement.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>
