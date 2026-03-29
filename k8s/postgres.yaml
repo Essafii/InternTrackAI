@@ -16,6 +16,7 @@ spec:
       containers:
         - name: postgres
           image: postgres:15-alpine
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5432
           env:
@@ -34,6 +35,13 @@ spec:
                 secretKeyRef:
                   name: postgres-secrets
                   key: POSTGRES_PASSWORD
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
 ---
 apiVersion: v1
 kind: Service
@@ -44,6 +52,7 @@ spec:
   selector:
     app: postgres
   ports:
-    - port: 5432
+    - protocol: TCP
+      port: 5432
       targetPort: 5432
   type: ClusterIP
