@@ -8,13 +8,18 @@ spec:
   selector:
     matchLabels:
       app: interntrackai-backend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   template:
     metadata:
       labels:
         app: interntrackai-backend
     spec:
       containers:
-        - name: interntrackai-backend
+        - name: backend
           image: zakariael3/interntrackai-backend:latest
           imagePullPolicy: Always
           ports:
@@ -46,6 +51,22 @@ spec:
                 secretKeyRef:
                   name: postgres-secrets
                   key: POSTGRES_PASSWORD
+          readinessProbe:
+            httpGet:
+              path: /api/actuator/health
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /api/actuator/health
+              port: 8080
+            initialDelaySeconds: 40
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
           resources:
             requests:
               cpu: "100m"
