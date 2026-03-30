@@ -1,7 +1,80 @@
+# ─── InternTrackAI — Kubernetes Deployments ──────────────────────────────────
+# Apply with: kubectl apply -f k8s/
+#
+# Secrets required (create before applying):
+#   kubectl create secret generic interntrackai-secrets \
+#     --from-literal=JWT_SECRET=<your-secret> \
+#     --from-literal=DB_PASSWORD=<your-password> \
+#     --from-literal=MAIL_PASSWORD=<your-password>
+
+---
+# ─── PostgreSQL ───────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: interntrackai-postgres
+  labels:
+    app: interntrackai-postgres
+    component: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: interntrackai-postgres
+  template:
+    metadata:
+      labels:
+        app: interntrackai-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: internship_db
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: interntrackai-secrets
+                  key: DB_PASSWORD
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+
+---
+# ─── Backend ──────────────────────────────────────────────────────────────────
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: interntrackai-backend
+  labels:
+    app: interntrackai-backend
+    component: backend
 spec:
   replicas: 1
   selector:
@@ -17,3 +90,81 @@ spec:
           image: messafi2/interntrackai-backend:latest
           ports:
             - containerPort: 8080
+          env:
+            - name: DB_HOST
+              value: interntrackai-postgres-service
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: internship_db
+            - name: DB_USER
+              value: postgres
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: interntrackai-secrets
+                  key: DB_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: interntrackai-secrets
+                  key: JWT_SECRET
+            - name: MAIL_MOCK
+              value: "true"
+            - name: TEAMS_MOCK
+              value: "true"
+            - name: UPLOAD_DIR
+              value: /app/uploads
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          volumeMounts:
+            - name: uploads-storage
+              mountPath: /app/uploads
+          livenessProbe:
+            httpGet:
+              path: /api/actuator/health
+              port: 8080
+            initialDelaySeconds: 90
+            periodSeconds: 30
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/actuator/health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            failureThreshold: 5
+      volumes:
+        - name: uploads-storage
+          persistentVolumeClaim:
+            claimName: uploads-pvc
+
+---
+# ─── Persistent Volume Claims ─────────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: uploads-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

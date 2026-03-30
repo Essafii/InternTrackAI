@@ -1,0 +1,23 @@
+<nav class="sidebar">
+  <div class="sidebar-brand">
+    <span class="brand-dxc">DXC</span>
+    <span class="brand-app">InternTrackAI</span>
+  </div>
+
+  <ul class="nav-list">
+    <li *ngFor="let item of visibleItems">
+      <a [routerLink]="item.route" routerLinkActive="active" class="nav-item">
+        <span class="nav-icon">{{ item.icon }}</span>
+        <span class="nav-label">{{ item.label }}</span>
+      </a>
+    </li>
+  </ul>
+
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-name">{{ auth.getCurrentUser()?.fullName }}</div>
+      <div class="user-role">{{ auth.getCurrentUser()?.role }}</div>
+    </div>
+    <button class="logout-btn" (click)="auth.logout()" title="Déconnexion">⎋</button>
+  </div>
+</nav>

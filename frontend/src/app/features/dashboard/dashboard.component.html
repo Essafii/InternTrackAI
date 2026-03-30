@@ -1,0 +1,12 @@
+<div class="page-header">
+  <h2>Dashboard</h2>
+</div>
+
+<div *ngIf="loading" class="loading">Chargement…</div>
+
+<div *ngIf="!loading && data" class="stats-grid">
+  <div class="stat-card" *ngFor="let key of objectKeys(data)">
+    <div class="stat-value">{{ data[key] }}</div>
+    <div class="stat-label">{{ key }}</div>
+  </div>
+</div>

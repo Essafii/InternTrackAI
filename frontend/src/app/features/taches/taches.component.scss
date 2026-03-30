@@ -1,0 +1,7 @@
+small      { font-size: 11px; color: var(--dxc-text-muted); }
+.overdue   { color: var(--dxc-danger); font-weight: 500; }
+.done-mark { color: var(--dxc-success); font-weight: 700; }
+.etat-select {
+  padding: 4px 8px; border: 1px solid var(--dxc-border);
+  border-radius: 4px; font-size: 12px; background: #fff; cursor: pointer;
+}
