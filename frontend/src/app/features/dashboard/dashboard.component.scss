@@ -1,0 +1,26 @@
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.stat-card {
+  background: var(--dxc-surface);
+  border: 1px solid var(--dxc-border);
+  border-radius: 10px;
+  padding: 20px 24px;
+  border-top: 3px solid var(--dxc-royal);
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--dxc-midnight);
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--dxc-text-muted);
+  margin-top: 4px;
+  text-transform: capitalize;
+}

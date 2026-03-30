@@ -1,0 +1,32 @@
+<div class="page-header">
+  <h2>Mes Tâches</h2>
+</div>
+
+<div *ngIf="loading" class="loading">Chargement…</div>
+
+<div *ngIf="!loading" class="table-wrapper">
+  <table>
+    <thead>
+      <tr><th>Titre</th><th>Priorité</th><th>Deadline</th><th>État</th><th>Action</th></tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let t of taches">
+        <td><strong>{{ t.titre }}</strong><br><small>{{ t.description }}</small></td>
+        <td>{{ t.priorite ?? '—' }}</td>
+        <td [class.overdue]="t.etat === 'EN_RETARD'">{{ t.deadline | date:'dd/MM/yyyy' }}</td>
+        <td><span class="badge" [ngClass]="etatBadge(t.etat)">{{ t.etat }}</span></td>
+        <td>
+          <select *ngIf="t.etat !== 'TERMINE'" (change)="updateEtat(t, $any($event.target).value)" class="etat-select">
+            <option value="">Changer…</option>
+            <option value="EN_COURS">En cours</option>
+            <option value="TERMINE">Terminé</option>
+          </select>
+          <span *ngIf="t.etat === 'TERMINE'" class="done-mark">✓</span>
+        </td>
+      </tr>
+      <tr *ngIf="taches.length === 0">
+        <td colspan="5" class="empty-state">Aucune tâche assignée.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

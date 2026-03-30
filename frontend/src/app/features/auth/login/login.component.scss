@@ -1,0 +1,77 @@
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--dxc-midnight);
+  background-image: radial-gradient(ellipse at 20% 50%, rgba(0,74,172,0.3) 0%, transparent 60%),
+                    radial-gradient(ellipse at 80% 20%, rgba(73,149,255,0.15) 0%, transparent 50%);
+}
+
+.login-card {
+  background: var(--dxc-white);
+  border-radius: 16px;
+  padding: 48px 40px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.logo-dxc {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--dxc-royal);
+  letter-spacing: -0.5px;
+}
+
+.logo-sep {
+  color: var(--dxc-border);
+  font-size: 1.5rem;
+  font-weight: 200;
+}
+
+.logo-app {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--dxc-midnight);
+}
+
+.subtitle {
+  font-size: 13px;
+  color: var(--dxc-text-muted);
+}
+
+.submit-btn {
+  width: 100%;
+  justify-content: center;
+  padding: 11px;
+  font-size: 15px;
+  margin-top: 8px;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
