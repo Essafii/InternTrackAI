@@ -151,10 +151,11 @@ class TacheControllerTest {
     }
 
     @Test
-    void getByStagiaire_shouldReturn404_whenStagiaireDoesNotExist() throws Exception {
+    void getByStagiaire_shouldReturnEmptyPage_whenStagiaireHasNoTasks() throws Exception {
         mockMvc.perform(get("/taches/stagiaire/99999")
                         .header("Authorization", "Bearer " + rhToken))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(0));
     }
 
     // ─── US-16 : Mettre à jour l'état ────────────────────────────────────────

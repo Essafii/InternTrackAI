@@ -45,6 +45,9 @@ app:
   storage:
     upload-dir: ./test-uploads
 
+  rate-limit:
+    enabled: false
+
 logging:
   level:
     com.internship: WARN
