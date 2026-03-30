@@ -85,6 +85,11 @@ springdoc:
     version: 1.0.0
     description: API de gestion intelligente des stagiaires — DXC Technology Morocco × ISTIC
 
+management:
+  health:
+    mail:
+      enabled: false
+
 logging:
   level:
     com.internship: INFO
