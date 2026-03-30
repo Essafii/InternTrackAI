@@ -1,0 +1,72 @@
+# ─── Java / Maven ───────────────────────────────────────────────────────────
+target/
+*.class
+*.jar
+*.war
+*.ear
+.mvn/
+!.mvn/wrapper/maven-wrapper.jar
+
+# ─── IDE ────────────────────────────────────────────────────────────────────
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.eclipse/
+*.launch
+.settings/
+.classpath
+.project
+
+# ─── Spring Boot ────────────────────────────────────────────────────────────
+application-local.yml
+application-local.properties
+
+# ─── Secrets — NEVER commit real credentials ────────────────────────────────
+.env
+env/prod/.env
+*.pem
+*.key
+*.p12
+*.jks
+*.pfx
+
+# ─── Uploads / generated files ──────────────────────────────────────────────
+uploads/
+uploads-*/
+
+# ─── Docker ─────────────────────────────────────────────────────────────────
+.docker/
+
+# ─── Kubernetes secrets (example files are OK) ──────────────────────────────
+k8s/*-secret.yaml
+!k8s/*-secret.example.yaml
+
+# ─── Logs ───────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ─── Internal / personal docs — keep in OneDrive, not in repo ───────────────
+planning/supervisor-meeting-*.md
+planning/*-meeting-*.md
+docs/internal/
+
+# ─── OS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Node (frontend, when added) ────────────────────────────────────────────
+node_modules/
+dist/
+.angular/
+npm-debug.log*
+
+# ─── Python (AI service, when added) ────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/

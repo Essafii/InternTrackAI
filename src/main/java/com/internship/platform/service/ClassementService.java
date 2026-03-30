@@ -8,20 +8,37 @@ import com.internship.platform.repository.EvaluationRepository;
 import com.internship.platform.repository.StagiaireRepository;
 import com.internship.platform.repository.TacheRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ClassementService {
 
     private final StagiaireRepository stagiaireRepository;
     private final EvaluationRepository evaluationRepository;
     private final TacheRepository tacheRepository;
     private final AbsenceService absenceService;
+
+    // US-34 — Recalcul hebdomadaire automatique du classement (RG02)
+    @Scheduled(cron = "0 0 9 * * MON")
+    @Transactional(readOnly = true)
+    public void recalculerClassementHebdomadaire() {
+        log.info("[CLASSEMENT] Recalcul hebdomadaire démarré — {}", LocalDate.now());
+        List<ClassementDto> classement = getClassement(null, null);
+        log.info("[CLASSEMENT] {} stagiaires classés.", classement.size());
+        classement.stream().limit(5).forEach(dto ->
+                log.info("  #{} {} — Score: {}", dto.getRang(), dto.getStagiaireNom(),
+                        String.format("%.1f", dto.getScoreGlobal())));
+    }
 
     public List<ClassementDto> getClassement(Long encadrantId, String equipe) {
         List<Stagiaire> stagiaires;

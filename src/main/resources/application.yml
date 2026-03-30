@@ -3,10 +3,14 @@ spring:
     name: internship-platform
 
   datasource:
-    url: jdbc:postgresql://127.0.0.1:5434/internship_db
-    username: postgres
-    password: postgres
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:internship_db}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
 
   jpa:
     hibernate:
@@ -15,14 +19,14 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-    open-in-view: true
+        format_sql: false
+    open-in-view: false
 
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${MAIL_USERNAME:dxcstage@gmail.com}
-    password: ${MAIL_PASSWORD:rmnhryoantptftpn}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
@@ -40,7 +44,7 @@ spring:
   thymeleaf:
     prefix: classpath:/templates/
     suffix: .html
-    cache: false
+    cache: true
 
 server:
   port: 8080
@@ -49,26 +53,26 @@ server:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437}
-    expiration: 86400000  # 24h in ms
-    refresh-expiration: 604800000  # 7 days
+    secret: ${JWT_SECRET}
+    expiration: 86400000       # 24h in ms
+    refresh-expiration: 604800000  # 7 days in ms
 
   storage:
     upload-dir: ${UPLOAD_DIR:./uploads}
 
   mail:
-    mock: false
-    from: dxcstage@gmail.com
-    platform-url: ${PLATFORM_URL:http://localhost:5173}
+    mock: ${MAIL_MOCK:true}
+    from: ${MAIL_FROM:noreply@interntrackai.dxc.com}
+    platform-url: ${PLATFORM_URL:http://localhost:4200}
 
   notifications:
-    absence-threshold: 80  # % assiduité minimum
+    absence-threshold: 80  # % assiduité minimum (RG07)
 
   teams:
     mock: ${TEAMS_MOCK:true}
-    tenant-id: ${TEAMS_TENANT_ID:mock-tenant}
-    client-id: ${TEAMS_CLIENT_ID:mock-client}
-    client-secret: ${TEAMS_CLIENT_SECRET:mock-secret}
+    tenant-id: ${TEAMS_TENANT_ID:}
+    client-id: ${TEAMS_CLIENT_ID:}
+    client-secret: ${TEAMS_CLIENT_SECRET:}
 
 springdoc:
   api-docs:
@@ -77,11 +81,13 @@ springdoc:
     path: /swagger-ui.html
     operationsSorter: method
   info:
-    title: Internship Platform API
+    title: InternTrackAI API
     version: 1.0.0
-    description: API de gestion des stagiaires
+    description: API de gestion intelligente des stagiaires — DXC Technology Morocco × ISTIC
 
 logging:
   level:
-    com.internship: DEBUG
-    org.springframework.security: INFO
+    com.internship: INFO
+    org.springframework.security: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
