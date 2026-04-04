@@ -1,0 +1,69 @@
+<div class="page-header">
+  <div>
+    <h1>Tableau de bord</h1>
+    <p>Bienvenue, {{ auth.currentUser()?.fullName }}</p>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="loading-spinner"><div class="spinner"></div></div>
+} @else if (stats()) {
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">👥</div>
+      <div class="stat-label">Total Stagiaires</div>
+      <div class="stat-value">{{ stats()!.totalStagiaires }}</div>
+    </div>
+    <div class="stat-card actif">
+      <div class="stat-icon">✅</div>
+      <div class="stat-label">Actifs</div>
+      <div class="stat-value">{{ stats()!.stagiairesActifs }}</div>
+    </div>
+    <div class="stat-card warning">
+      <div class="stat-icon">⚠️</div>
+      <div class="stat-label">En retard</div>
+      <div class="stat-value">{{ stats()!.stagiairesEnRetard }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">📊</div>
+      <div class="stat-label">Taux assiduité global</div>
+      <div class="stat-value">{{ stats()!.tauxAssiduiteGlobal | number:'1.0-0' }}%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">✅</div>
+      <div class="stat-label">Tâches en cours</div>
+      <div class="stat-value">{{ stats()!.tachesEnCours }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">📁</div>
+      <div class="stat-label">Livrables en attente</div>
+      <div class="stat-value">{{ stats()!.livrablesEnAttente }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">⭐</div>
+      <div class="stat-label">Évaluations en attente</div>
+      <div class="stat-value">{{ stats()!.evaluationsEnAttente }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🏁</div>
+      <div class="stat-label">Terminés</div>
+      <div class="stat-value">{{ stats()!.stagiairesTermines }}</div>
+    </div>
+  </div>
+
+  @if (stats()!.tauxAssiduiteGlobal < 80) {
+    <div class="alert alert-warning">
+      ⚠️ Le taux d'assiduité global est en dessous du seuil de 80%. Action requise.
+    </div>
+  }
+
+  <div class="quick-links">
+    <h3>Accès rapide</h3>
+    <div class="links-grid">
+      <a routerLink="/app/stagiaires" class="quick-card">👥 Gérer les stagiaires</a>
+      <a routerLink="/app/evaluations" class="quick-card">⭐ Créer une évaluation</a>
+      <a routerLink="/app/absences" class="quick-card">📅 Enregistrer une absence</a>
+      <a routerLink="/app/classement" class="quick-card">🏆 Voir le classement</a>
+    </div>
+  </div>
+}

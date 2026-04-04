@@ -1,0 +1,74 @@
+<div class="page-header">
+  <div>
+    <a routerLink="/app/stagiaires" class="back-link">← Stagiaires</a>
+    @if (stagiaire()) {
+      <h1>{{ stagiaire()!.user.firstName }} {{ stagiaire()!.user.lastName }}</h1>
+    }
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="loading-spinner"><div class="spinner"></div></div>
+} @else if (stagiaire()) {
+  <div class="detail-grid">
+    <div class="card info-card">
+      <div class="card-header"><h3>Informations</h3><span class="badge badge-{{ stagiaire()!.statut | lowercase }}">{{ stagiaire()!.statut }}</span></div>
+      <div class="info-rows">
+        <div class="info-row"><span>Email</span><span>{{ stagiaire()!.user.email }}</span></div>
+        <div class="info-row"><span>Équipe</span><span>{{ stagiaire()!.equipe }}</span></div>
+        <div class="info-row"><span>Établissement</span><span>{{ stagiaire()!.etablissement }}</span></div>
+        <div class="info-row"><span>Spécialité</span><span>{{ stagiaire()!.specialite }}</span></div>
+        <div class="info-row"><span>Encadrant</span><span>{{ stagiaire()!.encadrant?.firstName }} {{ stagiaire()!.encadrant?.lastName }}</span></div>
+        <div class="info-row"><span>Début</span><span>{{ stagiaire()!.dateDebut | date:'dd/MM/yyyy' }}</span></div>
+        <div class="info-row"><span>Fin</span><span>{{ stagiaire()!.dateFin | date:'dd/MM/yyyy' }}</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h3>Sujet de stage</h3></div>
+      <p>{{ stagiaire()!.sujet }}</p>
+    </div>
+
+    <div class="card assiduite-card" [class.danger]="assiduite() < 80">
+      <div class="stat-label">Taux d'assiduité</div>
+      <div class="assiduite-value">{{ assiduite() | number:'1.0-1' }}%</div>
+      @if (assiduite() < 80) {
+        <div class="alert alert-warning" style="margin-top:8px;margin-bottom:0">⚠️ En dessous du seuil 80%</div>
+      }
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="tabs">
+      <button class="tab" [class.active]="activeTab()==='taches'" (click)="activeTab.set('taches')">Tâches ({{ taches().length }})</button>
+      <button class="tab" [class.active]="activeTab()==='absences'" (click)="activeTab.set('absences')">Absences ({{ absences().length }})</button>
+      <button class="tab" [class.active]="activeTab()==='evaluations'" (click)="activeTab.set('evaluations')">Évaluations ({{ evaluations().length }})</button>
+      <button class="tab" [class.active]="activeTab()==='livrables'" (click)="activeTab.set('livrables')">Livrables ({{ livrables().length }})</button>
+    </div>
+
+    @if (activeTab() === 'taches') {
+      <table><thead><tr><th>Titre</th><th>Deadline</th><th>Priorité</th><th>État</th></tr></thead>
+      <tbody>@for (t of taches(); track t.id) {
+        <tr><td>{{ t.titre }}</td><td>{{ t.deadline | date:'dd/MM/yyyy' }}</td><td>P{{ t.priorite }}</td><td><span class="badge badge-{{ t.etat | lowercase }}">{{ t.etat }}</span></td></tr>
+      }</tbody></table>
+    }
+    @if (activeTab() === 'absences') {
+      <table><thead><tr><th>Date</th><th>Motif</th><th>Justifiée</th></tr></thead>
+      <tbody>@for (a of absences(); track a.id) {
+        <tr><td>{{ a.date | date:'dd/MM/yyyy' }}</td><td>{{ a.motif || '—' }}</td><td>{{ a.justifie ? '✅' : '❌' }}</td></tr>
+      }</tbody></table>
+    }
+    @if (activeTab() === 'evaluations') {
+      <table><thead><tr><th>Période</th><th>Score</th><th>Date</th></tr></thead>
+      <tbody>@for (e of evaluations(); track e.id) {
+        <tr><td>{{ e.periode }}</td><td><strong>{{ e.scoreGlobal | number:'1.1-1' }}/5</strong></td><td>{{ e.createdAt | date:'dd/MM/yyyy' }}</td></tr>
+      }</tbody></table>
+    }
+    @if (activeTab() === 'livrables') {
+      <table><thead><tr><th>Titre</th><th>Déposé le</th><th>Statut</th></tr></thead>
+      <tbody>@for (l of livrables(); track l.id) {
+        <tr><td>{{ l.titre }}</td><td>{{ l.dateDepot | date:'dd/MM/yyyy' }}</td><td><span class="badge badge-{{ l.statut | lowercase }}">{{ l.statut }}</span></td></tr>
+      }</tbody></table>
+    }
+  </div>
+}

@@ -1,0 +1,128 @@
+<div class="page-header">
+  <h1>Évaluations</h1>
+  <button class="btn btn-primary" (click)="showForm.set(!showForm())">
+    {{ showForm() ? 'Annuler' : '+ Nouvelle évaluation' }}
+  </button>
+</div>
+
+<!-- Evaluation form -->
+<div *ngIf="showForm()" class="card eval-form">
+  <h3>Nouvelle évaluation</h3>
+
+  <div class="avg-preview" *ngIf="form.dirty">
+    <span class="avg-label">Score moyen prévisuel</span>
+    <span class="avg-score" [class]="scoreColor(formAverage)">{{ formAverage | number:'1.1-1' }} / 5</span>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="form-row">
+      <div class="form-group">
+        <label>Stagiaire *</label>
+        <select class="form-control" formControlName="stagiaireId">
+          <option [ngValue]="null">-- Sélectionner --</option>
+          <option *ngFor="let s of stagiaires()" [ngValue]="s.id">
+            {{ s.user.firstName }} {{ s.user.lastName }}
+          </option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Période *</label>
+        <input type="text" class="form-control" formControlName="periode" placeholder="ex: Semaine 12, Mi-parcours..." />
+      </div>
+    </div>
+
+    <div class="criteria-grid">
+      <div class="criterion" *ngFor="let c of criteria">
+        <label>{{ c.label }}</label>
+        <div class="stars">
+          <button
+            type="button"
+            *ngFor="let s of stars(5)"
+            class="star-btn"
+            [class.active]="form.get(c.key)?.value >= s"
+            (click)="setStars(c.key, s)">
+            ★
+          </button>
+          <span class="star-value">{{ form.get(c.key)?.value }}/5</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Commentaire</label>
+      <textarea class="form-control" formControlName="commentaire" rows="3" placeholder="Observations..."></textarea>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" [disabled]="form.invalid || submitting()">
+        {{ submitting() ? 'Enregistrement...' : 'Enregistrer l\'évaluation' }}
+      </button>
+    </div>
+  </form>
+</div>
+
+<div *ngIf="success()" class="alert alert-success">{{ success() }}</div>
+<div *ngIf="error()" class="alert alert-danger">{{ error() }}</div>
+
+<div *ngIf="loading()" class="loading-spinner">
+  <div class="spinner"></div>
+  <span>Chargement...</span>
+</div>
+
+<div *ngIf="!loading()">
+  <div *ngIf="evaluations().length === 0" class="empty-state">
+    <p>Aucune évaluation enregistrée.</p>
+  </div>
+
+  <div *ngIf="evaluations().length > 0" class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Stagiaire</th>
+          <th>Période</th>
+          <th>Autonomie</th>
+          <th>Compét. tech.</th>
+          <th>Communication</th>
+          <th>Ponctualité</th>
+          <th>Résol. prob.</th>
+          <th>Travail éq.</th>
+          <th>Score global</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let ev of evaluations()">
+          <td>
+            <span *ngIf="ev.stagiaire?.user">
+              {{ ev.stagiaire.user.firstName }} {{ ev.stagiaire.user.lastName }}
+            </span>
+          </td>
+          <td>{{ ev.periode }}</td>
+          <td class="text-center">{{ ev.autonomie }}/5</td>
+          <td class="text-center">{{ ev.competencesTechniques }}/5</td>
+          <td class="text-center">{{ ev.communication }}/5</td>
+          <td class="text-center">{{ ev.ponctualite }}/5</td>
+          <td class="text-center">{{ ev.resolutionProblemes }}/5</td>
+          <td class="text-center">{{ ev.travailEquipe }}/5</td>
+          <td class="text-center">
+            <strong [class]="scoreColor(ev.scoreGlobal)">{{ ev.scoreGlobal | number:'1.1-1' }}</strong>
+          </td>
+          <td>{{ ev.createdAt | date:'dd/MM/yyyy' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination" *ngIf="totalPages > 1">
+    <button class="btn btn-outline" (click)="goPage(page() - 1)" [disabled]="page() === 0">‹ Préc.</button>
+    <button
+      *ngFor="let p of pages()"
+      class="btn"
+      [class.btn-primary]="p === page()"
+      [class.btn-outline]="p !== page()"
+      (click)="goPage(p)">
+      {{ p + 1 }}
+    </button>
+    <button class="btn btn-outline" (click)="goPage(page() + 1)" [disabled]="page() === totalPages - 1">Suiv. ›</button>
+  </div>
+</div>

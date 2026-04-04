@@ -1,0 +1,90 @@
+<div class="page-header">
+  <h1>Tâches</h1>
+  <span class="badge badge-info">{{ total() }} tâche(s)</span>
+</div>
+
+<div class="filters-bar">
+  <select class="form-control" (change)="onFilterEtat($any($event.target).value)">
+    <option *ngFor="let e of etats" [value]="e.value">{{ e.label }}</option>
+  </select>
+
+  <select class="form-control" (change)="onFilterStagiaire($any($event.target).value)">
+    <option value="">Tous les stagiaires</option>
+    <option *ngFor="let s of stagiaires()" [value]="s.id">
+      {{ s.user.firstName }} {{ s.user.lastName }}
+    </option>
+  </select>
+</div>
+
+<div *ngIf="error()" class="alert alert-danger">{{ error() }}</div>
+
+<div *ngIf="loading()" class="loading-spinner">
+  <div class="spinner"></div>
+  <span>Chargement des tâches...</span>
+</div>
+
+<div *ngIf="!loading()">
+  <div *ngIf="taches().length === 0" class="empty-state">
+    <p>Aucune tâche trouvée.</p>
+  </div>
+
+  <div *ngIf="taches().length > 0" class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Titre</th>
+          <th>Stagiaire</th>
+          <th>Deadline</th>
+          <th>Priorité</th>
+          <th>État</th>
+          <th>Changer état</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let tache of taches()" [class.row-overdue]="isOverdue(tache.deadline) && tache.etat !== 'TERMINE'">
+          <td>
+            <strong>{{ tache.titre }}</strong>
+            <div class="text-muted text-sm">{{ tache.description | slice:0:60 }}{{ (tache.description?.length ?? 0) > 60 ? '...' : '' }}</div>
+          </td>
+          <td>
+            <span *ngIf="tache.stagiaire?.user">
+              {{ tache.stagiaire.user.firstName }} {{ tache.stagiaire.user.lastName }}
+            </span>
+          </td>
+          <td>
+            <span [class.text-danger]="isOverdue(tache.deadline) && tache.etat !== 'TERMINE'">
+              {{ tache.deadline | date:'dd/MM/yyyy' }}
+            </span>
+          </td>
+          <td><span [class]="prioriteClass(tache.priorite)">{{ prioriteLabel(tache.priorite) }}</span></td>
+          <td><span [class]="etatClass(tache.etat)">{{ etatLabel(tache.etat) }}</span></td>
+          <td>
+            <select
+              class="form-control form-control-sm"
+              [value]="tache.etat"
+              [disabled]="updatingId() === tache.id"
+              (change)="updateEtat(tache, $any($event.target).value)">
+              <option value="A_FAIRE">À faire</option>
+              <option value="EN_COURS">En cours</option>
+              <option value="TERMINE">Terminé</option>
+              <option value="EN_RETARD">En retard</option>
+            </select>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination" *ngIf="totalPages > 1">
+    <button class="btn btn-outline" (click)="goPage(page() - 1)" [disabled]="page() === 0">‹ Préc.</button>
+    <button
+      *ngFor="let p of pages()"
+      class="btn"
+      [class.btn-primary]="p === page()"
+      [class.btn-outline]="p !== page()"
+      (click)="goPage(p)">
+      {{ p + 1 }}
+    </button>
+    <button class="btn btn-outline" (click)="goPage(page() + 1)" [disabled]="page() === totalPages - 1">Suiv. ›</button>
+  </div>
+</div>

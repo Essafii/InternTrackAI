@@ -1,0 +1,7 @@
+.back-link { color: var(--dxc-royal); font-size: 13px; text-decoration: none; display: block; margin-bottom: 6px; }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr 200px; gap: 16px; }
+.info-rows { display: flex; flex-direction: column; gap: 10px; }
+.info-row { display: flex; justify-content: space-between; font-size: 13px; span:first-child { color: var(--text-secondary); } }
+.assiduite-card { text-align: center; .assiduite-value { font-size: 36px; font-weight: 700; color: var(--dxc-royal); } &.danger .assiduite-value { color: var(--dxc-red); } }
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.tab { padding: 10px 16px; background: none; border: none; cursor: pointer; font-size: 14px; color: var(--text-secondary); border-bottom: 2px solid transparent; &.active { color: var(--dxc-royal); border-bottom-color: var(--dxc-royal); font-weight: 500; } }

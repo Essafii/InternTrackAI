@@ -1,0 +1,73 @@
+<div class="page-header">
+  <h1>Classement des stagiaires</h1>
+  <button class="btn btn-primary" (click)="load()" [disabled]="loading()">
+    ↻ Actualiser
+  </button>
+</div>
+
+<div class="filters-bar">
+  <select class="form-control" (change)="onFilterEquipe($any($event.target).value)">
+    <option value="">Toutes les équipes</option>
+    <option *ngFor="let eq of equipes" [value]="eq">{{ eq }}</option>
+  </select>
+  <span class="filter-count">{{ filtered.length }} stagiaire(s)</span>
+</div>
+
+<div *ngIf="error()" class="alert alert-danger">{{ error() }}</div>
+
+<div *ngIf="loading()" class="loading-spinner">
+  <div class="spinner"></div>
+  <span>Calcul du classement...</span>
+</div>
+
+<div *ngIf="!loading()">
+  <!-- Top 3 podium -->
+  <div class="podium" *ngIf="filtered.length >= 3">
+    <div class="podium-card" *ngFor="let e of filtered.slice(0, 3)" [class]="'podium-rank-' + e.rang">
+      <div class="medal">{{ medalIcon(e.rang) }}</div>
+      <div class="podium-name">{{ e.stagiaireNom }}</div>
+      <div class="podium-equipe">{{ e.equipe }}</div>
+      <div class="podium-score">{{ e.scoreGlobal | number:'1.0-1' }} pts</div>
+    </div>
+  </div>
+
+  <div *ngIf="filtered.length === 0" class="empty-state">
+    <p>Aucune donnée de classement disponible.</p>
+  </div>
+
+  <div *ngIf="filtered.length > 0" class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Rang</th>
+          <th>Stagiaire</th>
+          <th>Équipe</th>
+          <th style="min-width:180px">Score global</th>
+          <th>Assiduité</th>
+          <th>Tâches terminées</th>
+          <th>Note moyenne</th>
+          <th>Risque IA</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let e of filtered" [class.top-three]="e.rang <= 3">
+          <td class="rang-cell">
+            <span class="medal-inline">{{ medalIcon(e.rang) }}</span>
+          </td>
+          <td><strong>{{ e.stagiaireNom }}</strong></td>
+          <td>{{ e.equipe }}</td>
+          <td>
+            <div class="score-bar-container">
+              <div class="score-bar" [style.width.%]="e.scoreGlobal" [style.background]="scoreBarColor(e.scoreGlobal)"></div>
+            </div>
+            <span class="score-value">{{ e.scoreGlobal | number:'1.0-1' }}</span>
+          </td>
+          <td class="text-center">{{ e.tauxAssiduite | number:'1.0-1' }}%</td>
+          <td class="text-center">{{ e.tauxTachesTerminees | number:'1.0-1' }}%</td>
+          <td class="text-center">{{ e.noteMoyenne | number:'1.1-1' }}</td>
+          <td class="text-center">{{ e.risqueIA | number:'1.0-1' }}%</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

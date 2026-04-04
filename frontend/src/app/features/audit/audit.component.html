@@ -1,0 +1,76 @@
+<div class="page-header">
+  <h1>Journal d'audit</h1>
+  <span class="badge badge-info">{{ total() }} entrée(s)</span>
+</div>
+
+<div class="audit-notice alert alert-info">
+  Journal immuable — lecture seule. Toutes les actions sensibles sont enregistrées.
+</div>
+
+<div class="filters-bar">
+  <select class="form-control" (change)="onFilterAction($any($event.target).value)">
+    <option *ngFor="let a of actionTypes" [value]="a">
+      {{ a || 'Toutes les actions' }}
+    </option>
+  </select>
+  <span class="filter-count">{{ total() }} log(s)</span>
+</div>
+
+<div *ngIf="error()" class="alert alert-danger">{{ error() }}</div>
+
+<div *ngIf="loading()" class="loading-spinner">
+  <div class="spinner"></div>
+  <span>Chargement du journal...</span>
+</div>
+
+<div *ngIf="!loading()">
+  <div *ngIf="logs().length === 0" class="empty-state">
+    <p>Aucun log d'audit trouvé.</p>
+  </div>
+
+  <div *ngIf="logs().length > 0" class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Utilisateur</th>
+          <th>Action</th>
+          <th>Entité</th>
+          <th>ID Entité</th>
+          <th>Détails</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let log of logs()">
+          <td class="date-cell">{{ log.createdAt | date:'dd/MM/yyyy HH:mm:ss' }}</td>
+          <td>
+            <span class="user-email">{{ log.userEmail }}</span>
+            <span class="text-muted text-sm">#{{ log.userId }}</span>
+          </td>
+          <td><span [class]="actionClass(log.action)">{{ log.action }}</span></td>
+          <td>{{ log.entite }}</td>
+          <td class="text-center">{{ log.entiteId ?? '—' }}</td>
+          <td class="details-cell">
+            <span *ngIf="log.details" [title]="log.details">
+              {{ log.details | slice:0:80 }}{{ log.details.length > 80 ? '...' : '' }}
+            </span>
+            <span *ngIf="!log.details" class="text-muted">—</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination" *ngIf="totalPages > 1">
+    <button class="btn btn-outline" (click)="goPage(page() - 1)" [disabled]="page() === 0">‹ Préc.</button>
+    <button
+      *ngFor="let p of pages()"
+      class="btn"
+      [class.btn-primary]="p === page()"
+      [class.btn-outline]="p !== page()"
+      (click)="goPage(p)">
+      {{ p + 1 }}
+    </button>
+    <button class="btn btn-outline" (click)="goPage(page() + 1)" [disabled]="page() === totalPages - 1">Suiv. ›</button>
+  </div>
+</div>

@@ -1,0 +1,34 @@
+<div class="page-header">
+  <h1>Export des données</h1>
+</div>
+
+<p class="page-subtitle">Téléchargez les données de la plateforme aux formats CSV ou Excel.</p>
+
+<div *ngIf="error()" class="alert alert-danger">{{ error() }}</div>
+
+<div class="export-grid">
+  <div class="export-card" *ngFor="let ex of exports">
+    <div class="export-icon">{{ ex.icon }}</div>
+    <div class="export-info">
+      <h4>{{ ex.label }}</h4>
+      <p>{{ ex.description }}</p>
+    </div>
+    <button
+      class="btn btn-primary"
+      (click)="ex.action()"
+      [disabled]="isLoading(ex.type, ex.format)">
+      <span *ngIf="isLoading(ex.type, ex.format)">En cours...</span>
+      <span *ngIf="!isLoading(ex.type, ex.format)">⬇ Exporter</span>
+    </button>
+  </div>
+</div>
+
+<div class="export-info-box">
+  <h3>Informations sur les exports</h3>
+  <ul>
+    <li><strong>CSV</strong> : Fichier texte séparé par virgules, compatible avec tous les tableurs.</li>
+    <li><strong>Excel (.xlsx)</strong> : Fichier Microsoft Excel avec mise en forme.</li>
+    <li>Les exports incluent toutes les données accessibles selon votre rôle.</li>
+    <li>Les fichiers sont générés en temps réel à partir des données actuelles.</li>
+  </ul>
+</div>

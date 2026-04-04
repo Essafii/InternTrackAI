@@ -1,0 +1,29 @@
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-icon">🎓</span>
+    <div>
+      <div class="logo-title">InternTrackAI</div>
+      <div class="logo-sub">DXC Technology</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    @for (item of visibleItems; track item.route) {
+      <a [routerLink]="item.route" routerLinkActive="active" class="nav-item">
+        <span class="nav-icon">{{ item.icon }}</span>
+        <span class="nav-label">{{ item.label }}</span>
+      </a>
+    }
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar">{{ auth.currentUser()?.fullName?.charAt(0) }}</div>
+      <div class="user-details">
+        <div class="user-name">{{ auth.currentUser()?.fullName }}</div>
+        <div class="user-role">{{ auth.currentUser()?.role }}</div>
+      </div>
+    </div>
+    <button class="logout-btn" (click)="auth.logout()">⏻</button>
+  </div>
+</aside>

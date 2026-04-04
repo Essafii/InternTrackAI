@@ -1,0 +1,11 @@
+.page-subtitle { color: var(--text-muted, #666); margin-bottom: 2rem; }
+.export-grid { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 2rem; }
+.export-card { display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: var(--card-bg, #fff); border-radius: 10px; border: 1px solid var(--border-color, #e0e0e0); }
+.export-icon { font-size: 2rem; flex-shrink: 0; }
+.export-info { flex: 1; }
+.export-info h4 { margin: 0 0 0.25rem; }
+.export-info p { margin: 0; font-size: 0.85rem; color: var(--text-muted, #666); }
+.export-info-box { background: var(--bg-subtle, #f8f9fa); border-radius: 10px; padding: 1.25rem; }
+.export-info-box h3 { margin-top: 0; }
+.export-info-box ul { padding-left: 1.25rem; }
+.export-info-box li { margin-bottom: 0.4rem; font-size: 0.9rem; }

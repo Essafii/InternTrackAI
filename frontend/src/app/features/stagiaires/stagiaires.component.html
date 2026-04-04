@@ -1,0 +1,66 @@
+<div class="page-header">
+  <div><h1>Stagiaires</h1><p>{{ total() }} stagiaire(s) au total</p></div>
+</div>
+
+<div class="filters-bar">
+  <div class="filter-input">
+    <span class="search-icon">🔍</span>
+    <input type="text" placeholder="Rechercher..." (input)="onSearch($any($event.target).value)" />
+  </div>
+  <select class="form-control" style="width:160px" (change)="onStatut($any($event.target).value)">
+    <option value="">Tous les statuts</option>
+    <option value="ACTIF">Actif</option>
+    <option value="EN_RETARD">En retard</option>
+    <option value="TERMINE">Terminé</option>
+    <option value="INACTIF">Inactif</option>
+  </select>
+</div>
+
+<div class="card" style="padding:0">
+  @if (loading()) {
+    <div class="loading-spinner"><div class="spinner"></div></div>
+  } @else if (stagiaires().length === 0) {
+    <div class="empty-state"><div class="empty-icon">👥</div><h3>Aucun stagiaire trouvé</h3></div>
+  } @else {
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Nom</th>
+            <th>Équipe</th>
+            <th>Sujet</th>
+            <th>Encadrant</th>
+            <th>Début</th>
+            <th>Fin</th>
+            <th>Statut</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (s of stagiaires(); track s.id) {
+            <tr>
+              <td><strong>{{ s.user.firstName }} {{ s.user.lastName }}</strong><br><small class="text-muted">{{ s.user.email }}</small></td>
+              <td>{{ s.equipe }}</td>
+              <td class="sujet-cell">{{ s.sujet }}</td>
+              <td>{{ s.encadrant?.firstName }} {{ s.encadrant?.lastName }}</td>
+              <td>{{ s.dateDebut | date:'dd/MM/yyyy' }}</td>
+              <td>{{ s.dateFin | date:'dd/MM/yyyy' }}</td>
+              <td><span class="badge badge-{{ s.statut | lowercase }}">{{ s.statut }}</span></td>
+              <td><a [routerLink]="['/app/stagiaires', s.id]" class="btn btn-sm btn-secondary">Voir</a></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination">
+      <span>{{ total() }} résultat(s)</span>
+      <div class="page-btns">
+        <button class="page-btn" (click)="goPage(page()-1)" [disabled]="page()===0">‹</button>
+        @for (p of pages(); track p) {
+          <button class="page-btn" [class.active]="p===page()" (click)="goPage(p)">{{ p+1 }}</button>
+        }
+        <button class="page-btn" (click)="goPage(page()+1)" [disabled]="page()>=totalPages-1">›</button>
+      </div>
+    </div>
+  }
+</div>
