@@ -1,73 +1,140 @@
-<div class="page-header">
-  <h1>Classement des stagiaires</h1>
-  <button class="btn btn-primary" (click)="load()" [disabled]="loading()">
-    ↻ Actualiser
-  </button>
-</div>
+<div class="p-8">
 
-<div class="filters-bar">
-  <select class="form-control" (change)="onFilterEquipe($any($event.target).value)">
-    <option value="">Toutes les équipes</option>
-    <option *ngFor="let eq of equipes" [value]="eq">{{ eq }}</option>
-  </select>
-  <span class="filter-count">{{ filtered.length }} stagiaire(s)</span>
-</div>
-
-<div *ngIf="error()" class="alert alert-danger">{{ error() }}</div>
-
-<div *ngIf="loading()" class="loading-spinner">
-  <div class="spinner"></div>
-  <span>Calcul du classement...</span>
-</div>
-
-<div *ngIf="!loading()">
-  <!-- Top 3 podium -->
-  <div class="podium" *ngIf="filtered.length >= 3">
-    <div class="podium-card" *ngFor="let e of filtered.slice(0, 3)" [class]="'podium-rank-' + e.rang">
-      <div class="medal">{{ medalIcon(e.rang) }}</div>
-      <div class="podium-name">{{ e.stagiaireNom }}</div>
-      <div class="podium-equipe">{{ e.equipe }}</div>
-      <div class="podium-score">{{ e.scoreGlobal | number:'1.0-1' }} pts</div>
+  <!-- Page Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="font-sora text-2xl font-bold text-white">Classement</h1>
+      <p class="font-plex text-sm text-on-surface-variant opacity-60 mt-1">{{ filtered.length }} stagiaire(s) — scoring recalculé chaque lundi à 09h00</p>
     </div>
+    <button
+      class="flex items-center gap-2 border border-white/10 text-on-surface-variant hover:bg-white/5 font-plex text-sm px-4 py-2.5 rounded-xl transition-all disabled:opacity-40"
+      (click)="load()"
+      [disabled]="loading()"
+    >
+      <span class="material-symbols-outlined text-[18px]">refresh</span>
+      Actualiser
+    </button>
   </div>
 
-  <div *ngIf="filtered.length === 0" class="empty-state">
-    <p>Aucune donnée de classement disponible.</p>
+  @if (error()) {
+    <div class="mb-5 flex items-center gap-2 bg-error-container/20 border border-error/30 rounded-xl px-4 py-3">
+      <span class="material-symbols-outlined text-error text-[18px]">error</span>
+      <span class="font-plex text-sm text-error">{{ error() }}</span>
+    </div>
+  }
+
+  <!-- Filter -->
+  <div class="mb-6">
+    <select
+      class="bg-surface border border-white/10 text-on-surface-variant text-sm rounded-xl px-4 py-2.5 outline-none focus:border-primary-container transition-all cursor-pointer"
+      (change)="onFilterEquipe($any($event.target).value)"
+    >
+      <option value="">Toutes les équipes</option>
+      @for (eq of equipes; track eq) {
+        <option [value]="eq">{{ eq }}</option>
+      }
+    </select>
   </div>
 
-  <div *ngIf="filtered.length > 0" class="table-wrapper">
-    <table>
-      <thead>
-        <tr>
-          <th>Rang</th>
-          <th>Stagiaire</th>
-          <th>Équipe</th>
-          <th style="min-width:180px">Score global</th>
-          <th>Assiduité</th>
-          <th>Tâches terminées</th>
-          <th>Note moyenne</th>
-          <th>Risque IA</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let e of filtered" [class.top-three]="e.rang <= 3">
-          <td class="rang-cell">
-            <span class="medal-inline">{{ medalIcon(e.rang) }}</span>
-          </td>
-          <td><strong>{{ e.stagiaireNom }}</strong></td>
-          <td>{{ e.equipe }}</td>
-          <td>
-            <div class="score-bar-container">
-              <div class="score-bar" [style.width.%]="e.scoreGlobal" [style.background]="scoreBarColor(e.scoreGlobal)"></div>
-            </div>
-            <span class="score-value">{{ e.scoreGlobal | number:'1.0-1' }}</span>
-          </td>
-          <td class="text-center">{{ e.tauxAssiduite | number:'1.0-1' }}%</td>
-          <td class="text-center">{{ e.tauxTachesTerminees | number:'1.0-1' }}%</td>
-          <td class="text-center">{{ e.noteMoyenne | number:'1.1-1' }}</td>
-          <td class="text-center">{{ e.risqueIA | number:'1.0-1' }}%</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  @if (loading()) {
+    <div class="flex items-center justify-center h-48">
+      <div class="w-8 h-8 border-2 border-white/20 border-t-primary-container rounded-full animate-spin"></div>
+    </div>
+  } @else if (filtered.length === 0) {
+    <div class="flex flex-col items-center justify-center py-16 text-center bg-surface border border-white/5 rounded-lg">
+      <span class="material-symbols-outlined text-[48px] text-on-surface-variant opacity-20 mb-4">leaderboard</span>
+      <h3 class="font-sora font-semibold text-white mb-2">Aucune donnée de classement</h3>
+      <p class="font-plex text-sm text-on-surface-variant opacity-50">Le scoring est recalculé chaque lundi à 09h00.</p>
+    </div>
+  } @else {
+
+    <!-- Top 3 podium -->
+    @if (filtered.length >= 3) {
+      <div class="flex items-end justify-center gap-4 mb-8">
+        <!-- 2nd place -->
+        <div class="flex flex-col items-center bg-surface border border-white/5 rounded-lg p-5 w-[160px] order-1">
+          <div class="text-3xl mb-2">{{ medalIcon(filtered[1].rang) }}</div>
+          <p class="font-plex text-sm font-semibold text-white text-center truncate w-full">{{ filtered[1].stagiaireNom }}</p>
+          <p class="font-plex text-[10px] text-white/40 mb-2">{{ filtered[1].equipe || '—' }}</p>
+          <span class="font-mono text-lg font-bold" [style.color]="scoreBarColor(filtered[1].scoreGlobal)">
+            {{ filtered[1].scoreGlobal | number:'1.1-1' }}/20
+          </span>
+        </div>
+        <!-- 1st place (taller) -->
+        <div class="flex flex-col items-center bg-primary-container/10 border border-primary-container/20 rounded-lg p-5 w-[180px] order-2 -mb-4">
+          <div class="text-4xl mb-2">{{ medalIcon(filtered[0].rang) }}</div>
+          <p class="font-plex text-sm font-bold text-white text-center truncate w-full">{{ filtered[0].stagiaireNom }}</p>
+          <p class="font-plex text-[10px] text-white/40 mb-2">{{ filtered[0].equipe || '—' }}</p>
+          <span class="font-mono text-xl font-bold" [style.color]="scoreBarColor(filtered[0].scoreGlobal)">
+            {{ filtered[0].scoreGlobal | number:'1.1-1' }}/20
+          </span>
+        </div>
+        <!-- 3rd place -->
+        <div class="flex flex-col items-center bg-surface border border-white/5 rounded-lg p-5 w-[160px] order-3">
+          <div class="text-3xl mb-2">{{ medalIcon(filtered[2].rang) }}</div>
+          <p class="font-plex text-sm font-semibold text-white text-center truncate w-full">{{ filtered[2].stagiaireNom }}</p>
+          <p class="font-plex text-[10px] text-white/40 mb-2">{{ filtered[2].equipe || '—' }}</p>
+          <span class="font-mono text-lg font-bold" [style.color]="scoreBarColor(filtered[2].scoreGlobal)">
+            {{ filtered[2].scoreGlobal | number:'1.1-1' }}/20
+          </span>
+        </div>
+      </div>
+    }
+
+    <!-- Full ranking table -->
+    <div class="bg-surface border border-white/5 rounded-lg overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead class="bg-white/[0.03] text-[10px] uppercase tracking-wider font-semibold text-white/40">
+            <tr>
+              <th class="px-5 py-3 font-medium text-center">Rang</th>
+              <th class="px-5 py-3 font-medium">Stagiaire</th>
+              <th class="px-5 py-3 font-medium">Équipe</th>
+              <th class="px-5 py-3 font-medium min-w-[160px]">Score global</th>
+              <th class="px-5 py-3 font-medium text-center">Assiduité</th>
+              <th class="px-5 py-3 font-medium text-center">Tâches</th>
+              <th class="px-5 py-3 font-medium text-center">Note moy.</th>
+              <th class="px-5 py-3 font-medium text-center">Risque</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/5">
+            @for (e of filtered; track e.stagiaireId) {
+              <tr class="hover:bg-white/[0.02] transition-colors" [class.bg-primary-container]="e.rang <= 3" [class.bg-opacity-5]="e.rang <= 3">
+                <td class="px-5 py-4 text-center font-plex text-lg">{{ medalIcon(e.rang) }}</td>
+                <td class="px-5 py-4 font-plex text-sm font-medium text-white">{{ e.stagiaireNom }}</td>
+                <td class="px-5 py-4 font-plex text-sm text-white/60">{{ e.equipe || '—' }}</td>
+                <td class="px-5 py-4">
+                  <div class="flex items-center gap-2">
+                    <div class="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                      <div class="h-full rounded-full"
+                           [style.width.%]="(e.scoreGlobal / 20) * 100"
+                           [style.background]="scoreBarColor(e.scoreGlobal)"></div>
+                    </div>
+                    <span class="font-mono text-[12px] font-bold min-w-[44px]" [style.color]="scoreBarColor(e.scoreGlobal)">
+                      {{ e.scoreGlobal | number:'1.1-1' }}/20
+                    </span>
+                  </div>
+                </td>
+                <td class="px-5 py-4 text-center font-plex text-sm text-white/70">{{ e.tauxAssiduite | number:'1.0-1' }}%</td>
+                <td class="px-5 py-4 text-center font-plex text-sm text-white/70">{{ e.tauxTachesTerminees | number:'1.0-1' }}%</td>
+                <td class="px-5 py-4 text-center font-plex text-sm text-white/70">{{ e.noteMoyenne | number:'1.1-1' }}/20</td>
+                <td class="px-5 py-4 text-center">
+                  <span class="font-plex text-[10px] font-bold px-2.5 py-1 rounded-lg"
+                    [class.bg-error-container]="e.risqueIA >= 70"
+                    [class.text-error]="e.risqueIA >= 70"
+                    [class.bg-warning]="e.risqueIA >= 40 && e.risqueIA < 70"
+                    [class.bg-opacity-20]="e.risqueIA >= 40 && e.risqueIA < 70"
+                    [class.text-warning]="e.risqueIA >= 40 && e.risqueIA < 70"
+                    [class.bg-success]="e.risqueIA < 40"
+                    [class.bg-opacity-10]="e.risqueIA < 40"
+                    [class.text-success]="e.risqueIA < 40"
+                  >{{ e.risqueIA | number:'1.0-0' }}%</span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
 </div>

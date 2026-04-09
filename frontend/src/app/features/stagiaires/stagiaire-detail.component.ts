@@ -2,7 +2,7 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
-import { Stagiaire, Tache, Absence, Evaluation, Livrable } from '../../core/models';
+import { StagiaireDto, TacheDto, AbsenceDto, EvaluationDto, LivrableDto } from '../../core/models';
 
 @Component({
   selector: 'app-stagiaire-detail',
@@ -12,28 +12,28 @@ import { Stagiaire, Tache, Absence, Evaluation, Livrable } from '../../core/mode
   styleUrl: './stagiaire-detail.component.scss'
 })
 export class StagiaireDetailComponent implements OnInit {
-  api = inject(ApiService);
+  api   = inject(ApiService);
   route = inject(ActivatedRoute);
 
-  stagiaire = signal<Stagiaire | null>(null);
-  taches = signal<Tache[]>([]);
-  absences = signal<Absence[]>([]);
-  evaluations = signal<Evaluation[]>([]);
-  livrables = signal<Livrable[]>([]);
-  assiduite = signal<number>(0);
-  loading = signal(true);
-  activeTab = signal<'taches'|'absences'|'evaluations'|'livrables'>('taches');
+  stagiaire   = signal<StagiaireDto | null>(null);
+  taches      = signal<TacheDto[]>([]);
+  absences    = signal<AbsenceDto[]>([]);
+  evaluations = signal<EvaluationDto[]>([]);
+  livrables   = signal<LivrableDto[]>([]);
+  assiduite   = signal<number>(0);
+  loading     = signal(true);
+  activeTab   = signal<'taches'|'absences'|'evaluations'|'livrables'>('taches');
 
   ngOnInit() {
     const id = Number(this.route.snapshot.paramMap.get('id'));
-    this.api.getStagiaire(id).subscribe(s => {
-      this.stagiaire.set(s);
-      this.loading.set(false);
+    this.api.getStagiaire(id).subscribe({
+      next: s => { this.stagiaire.set(s); this.loading.set(false); },
+      error: () => this.loading.set(false)
     });
-    this.api.getTaches(0, 20, id).subscribe(r => this.taches.set(r.content));
-    this.api.getAbsences(0, 20, id).subscribe(r => this.absences.set(r.content));
-    this.api.getEvaluations(0, 20, id).subscribe(r => this.evaluations.set(r.content));
-    this.api.getLivrables(0, 20, id).subscribe(r => this.livrables.set(r.content));
-    this.api.getAssiduite(id).subscribe(r => this.assiduite.set(r.tauxAssiduite));
+    this.api.getTachesByStagiaire(id, 0, 20).subscribe({ next: r => this.taches.set(r.content), error: () => {} });
+    this.api.getAbsencesByStagiaire(id, 0, 20).subscribe({ next: r => this.absences.set(r.content), error: () => {} });
+    this.api.getEvaluationsByStagiaire(id, 0, 20).subscribe({ next: r => this.evaluations.set(r.content), error: () => {} });
+    this.api.getLivrablesByStagiaire(id, 0, 20).subscribe({ next: r => this.livrables.set(r.content), error: () => {} });
+    this.api.getAssiduite(id).subscribe({ next: taux => this.assiduite.set(taux), error: () => {} });
   }
 }

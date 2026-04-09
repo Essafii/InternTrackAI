@@ -8,14 +8,12 @@ import { TopbarComponent } from '../shared/topbar/topbar.component';
   standalone: true,
   imports: [RouterOutlet, SidebarComponent, TopbarComponent],
   template: `
-    <div class="app-layout">
+    <div class="min-h-screen bg-[#0B0D1A]">
       <app-sidebar />
-      <div class="main-content">
-        <app-topbar />
-        <div class="page-content">
-          <router-outlet />
-        </div>
-      </div>
+      <app-topbar />
+      <main class="ml-[248px] pt-14 min-h-screen">
+        <router-outlet />
+      </main>
     </div>
   `
 })

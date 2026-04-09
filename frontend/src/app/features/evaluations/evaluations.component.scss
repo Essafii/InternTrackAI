@@ -1,13 +1,1 @@
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-.criteria-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
-.criterion label { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.3rem; display: block; }
-.stars { display: flex; align-items: center; gap: 4px; }
-.star-btn { background: none; border: none; font-size: 1.5rem; color: #ccc; cursor: pointer; padding: 0; transition: color 0.15s; }
-.star-btn.active { color: #f0a500; }
-.star-value { margin-left: 6px; font-size: 0.85rem; color: var(--text-muted, #666); }
-.avg-preview { display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1rem; background: var(--bg-subtle, #f8f9fa); border-radius: 8px; margin-bottom: 1rem; }
-.avg-score { font-size: 1.5rem; font-weight: 700; }
-.text-success { color: #28a745; }
-.text-warning { color: #f0a500; }
-.text-danger { color: #dc3545; }
-.text-center { text-align: center; }
+

@@ -1,29 +1,6 @@
-.stat-card {
-  &.actif { border-left: 4px solid #10b981; }
-  &.warning { border-left: 4px solid var(--dxc-gold); }
-}
+/* All styling via Tailwind — see dashboard.component.html */
+:host { display: block; }
 
-.quick-links {
-  margin-top: 24px;
-  h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
-}
-
-.links-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
-}
-
-.quick-card {
-  display: block;
-  padding: 16px;
-  background: white;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  text-decoration: none;
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.15s;
-  &:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); color: var(--dxc-royal); }
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }

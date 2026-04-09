@@ -1,69 +1,311 @@
-<div class="page-header">
-  <div>
-    <h1>Tableau de bord</h1>
-    <p>Bienvenue, {{ auth.currentUser()?.fullName }}</p>
-  </div>
-</div>
+<div class="p-8">
 
-@if (loading()) {
-  <div class="loading-spinner"><div class="spinner"></div></div>
-} @else if (stats()) {
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-icon">👥</div>
-      <div class="stat-label">Total Stagiaires</div>
-      <div class="stat-value">{{ stats()!.totalStagiaires }}</div>
-    </div>
-    <div class="stat-card actif">
-      <div class="stat-icon">✅</div>
-      <div class="stat-label">Actifs</div>
-      <div class="stat-value">{{ stats()!.stagiairesActifs }}</div>
-    </div>
-    <div class="stat-card warning">
-      <div class="stat-icon">⚠️</div>
-      <div class="stat-label">En retard</div>
-      <div class="stat-value">{{ stats()!.stagiairesEnRetard }}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">📊</div>
-      <div class="stat-label">Taux assiduité global</div>
-      <div class="stat-value">{{ stats()!.tauxAssiduiteGlobal | number:'1.0-0' }}%</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">✅</div>
-      <div class="stat-label">Tâches en cours</div>
-      <div class="stat-value">{{ stats()!.tachesEnCours }}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">📁</div>
-      <div class="stat-label">Livrables en attente</div>
-      <div class="stat-value">{{ stats()!.livrablesEnAttente }}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">⭐</div>
-      <div class="stat-label">Évaluations en attente</div>
-      <div class="stat-value">{{ stats()!.evaluationsEnAttente }}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">🏁</div>
-      <div class="stat-label">Terminés</div>
-      <div class="stat-value">{{ stats()!.stagiairesTermines }}</div>
+  <!-- Page Header -->
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="font-sora text-2xl font-bold text-white">Tableau de bord</h1>
+      <p class="font-plex text-sm text-on-surface-variant opacity-60 mt-1">
+        {{ auth.currentUser()?.fullName }} · {{ today | date:'EEEE d MMMM yyyy':'':'fr' }}
+      </p>
     </div>
   </div>
 
-  @if (stats()!.tauxAssiduiteGlobal < 80) {
-    <div class="alert alert-warning">
-      ⚠️ Le taux d'assiduité global est en dessous du seuil de 80%. Action requise.
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="flex items-center justify-center h-48">
+      <div class="w-8 h-8 border-2 border-white/20 border-t-primary-container rounded-full animate-spin"></div>
     </div>
   }
 
-  <div class="quick-links">
-    <h3>Accès rapide</h3>
-    <div class="links-grid">
-      <a routerLink="/app/stagiaires" class="quick-card">👥 Gérer les stagiaires</a>
-      <a routerLink="/app/evaluations" class="quick-card">⭐ Créer une évaluation</a>
-      <a routerLink="/app/absences" class="quick-card">📅 Enregistrer une absence</a>
-      <a routerLink="/app/classement" class="quick-card">🏆 Voir le classement</a>
+  <!-- ══════════════ RH / ADMIN VIEW ══════════════ -->
+  @if (!loading() && isRhOrAdmin() && rhStats()) {
+
+    @if ((rhStats()!.tauxAssiduiteGlobal) < 80) {
+      <div class="mb-6 flex items-center gap-3 bg-warning/10 border border-warning/30 rounded-xl px-4 py-3">
+        <span class="material-symbols-outlined text-warning">warning</span>
+        <span class="font-plex text-sm text-warning">
+          Taux d'assiduité global <strong>{{ rhStats()!.tauxAssiduiteGlobal | number:'1.0-0' }}%</strong>
+          — en dessous du seuil de 80 %. Action requise.
+        </span>
+      </div>
+    }
+
+    <!-- KPI Row -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+
+      <!-- Stagiaires actifs -->
+      <div class="bg-surface border border-white/5 rounded-lg p-5 border-l-[3px] border-l-primary-container">
+        <div class="flex justify-between items-start mb-4">
+          <span class="font-plex text-[11px] font-semibold text-white/50 uppercase tracking-wider">Stagiaires actifs</span>
+          <span class="material-symbols-outlined text-primary-container/50 text-[20px]">person</span>
+        </div>
+        <span class="font-sora text-3xl font-bold text-white">{{ rhStats()!.stagiairesActifs }}</span>
+        <p class="font-plex text-[10px] text-white/30 mt-2">/ {{ rhStats()!.totalStagiaires }} total</p>
+      </div>
+
+      <!-- Assiduité -->
+      <div class="bg-surface border border-white/5 rounded-lg p-5 border-l-[3px] border-l-secondary">
+        <div class="flex justify-between items-start mb-4">
+          <span class="font-plex text-[11px] font-semibold text-white/50 uppercase tracking-wider">Taux d'assiduité</span>
+          <span class="material-symbols-outlined text-secondary/50 text-[20px]">calendar_today</span>
+        </div>
+        <div class="flex items-baseline gap-2 mb-3">
+          <span class="font-sora text-3xl font-bold text-white">{{ rhStats()!.tauxAssiduiteGlobal | number:'1.0-0' }}%</span>
+          <span class="font-plex text-[10px] text-white/40">Min. 80%</span>
+        </div>
+        <div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+          <div class="h-full rounded-full transition-all"
+               [style.width.%]="rhStats()!.tauxAssiduiteGlobal"
+               [style.background]="assiduiteColor(rhStats()!.tauxAssiduiteGlobal)"></div>
+        </div>
+      </div>
+
+      <!-- En retard -->
+      <div class="bg-surface border border-white/5 rounded-lg p-5 border-l-[3px] border-l-warning">
+        <div class="flex justify-between items-start mb-4">
+          <span class="font-plex text-[11px] font-semibold text-white/50 uppercase tracking-wider">En retard</span>
+          <span class="material-symbols-outlined text-warning/50 text-[20px]">warning</span>
+        </div>
+        <span class="font-sora text-3xl font-bold text-white">{{ rhStats()!.stagiairesEnRetard }}</span>
+        <p class="font-plex text-[10px] text-white/30 mt-2">stagiaire(s)</p>
+      </div>
+
+      <!-- Terminés -->
+      <div class="bg-surface border border-white/5 rounded-lg p-5 border-l-[3px] border-l-tertiary">
+        <div class="flex justify-between items-start mb-4">
+          <span class="font-plex text-[11px] font-semibold text-white/50 uppercase tracking-wider">Terminés</span>
+          <span class="material-symbols-outlined text-tertiary/50 text-[20px]">check_circle</span>
+        </div>
+        <span class="font-sora text-3xl font-bold text-white">{{ rhStats()!.stagiairesTermines }}</span>
+        <p class="font-plex text-[10px] text-white/30 mt-2">archivés: {{ rhStats()!.stagiairesArchives }}</p>
+      </div>
+
     </div>
-  </div>
-}
+
+    <!-- Trends + Team Stats -->
+    @if (rhTrends()) {
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- Monthly trend bars -->
+        <div class="bg-surface border border-white/5 rounded-lg overflow-hidden">
+          <div class="p-6 border-b border-white/5 flex items-center justify-between">
+            <div>
+              <h2 class="font-sora text-[15px] font-semibold text-white">Tendances mensuelles</h2>
+              <p class="font-plex text-[11px] text-on-surface-variant opacity-50 mt-0.5">Absences et tâches par mois</p>
+            </div>
+            <div class="flex items-center gap-4 font-plex text-[11px] text-white/50">
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-error inline-block"></span>Absences</span>
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-secondary inline-block"></span>Tâches</span>
+            </div>
+          </div>
+          <div class="p-6">
+            <div class="flex items-end gap-3 h-32">
+              @for (t of rhTrends()!.monthlyTrends; track t.mois) {
+                <div class="flex-1 flex flex-col items-center gap-1">
+                  <div class="flex items-end gap-0.5 w-full h-24">
+                    <div class="flex-1 bg-error/70 rounded-t-sm transition-all"
+                         [style.height.%]="(t.absences / maxTrendVal()) * 100"
+                         [title]="t.absences + ' absences'"></div>
+                    <div class="flex-1 bg-secondary/70 rounded-t-sm transition-all"
+                         [style.height.%]="(t.taches / maxTrendVal()) * 100"
+                         [title]="t.taches + ' tâches'"></div>
+                  </div>
+                  <span class="font-plex text-[9px] text-white/40 uppercase">{{ t.mois }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Team stats table -->
+        <div class="bg-surface border border-white/5 rounded-lg overflow-hidden">
+          <div class="p-6 border-b border-white/5">
+            <h2 class="font-sora text-[15px] font-semibold text-white">Stats par équipe</h2>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead class="bg-white/[0.03] text-[10px] uppercase tracking-wider font-semibold text-white/40">
+                <tr>
+                  <th class="px-5 py-3 font-medium">Encadrant</th>
+                  <th class="px-5 py-3 font-medium text-center">Stagiaires</th>
+                  <th class="px-5 py-3 font-medium">Assiduité</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-white/5">
+                @for (t of rhTrends()!.teamStats; track t.encadrant) {
+                  <tr class="hover:bg-white/[0.02] transition-colors">
+                    <td class="px-5 py-3 font-plex text-sm text-white">{{ t.encadrant }}</td>
+                    <td class="px-5 py-3 text-center font-plex text-sm text-white/70">{{ t.stagiaires }}</td>
+                    <td class="px-5 py-3">
+                      <div class="flex items-center gap-2">
+                        <div class="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                          <div class="h-full rounded-full"
+                               [style.width.%]="t.tauxAssiduite"
+                               [style.background]="assiduiteColor(t.tauxAssiduite)"></div>
+                        </div>
+                        <span class="font-plex text-[11px] font-semibold text-white/60 min-w-[32px]">{{ t.tauxAssiduite | number:'1.0-0' }}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    }
+  }
+
+  <!-- ══════════════ ENCADRANT VIEW ══════════════ -->
+  @if (!loading() && isEncadrant() && encStats()) {
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+      <div class="bg-surface border border-white/5 rounded-lg p-5 border-l-[3px] border-l-primary-container">
+        <div class="flex justify-between items-start mb-4">
+          <span class="font-plex text-[11px] font-semibold text-white/50 uppercase tracking-wider">Mon équipe</span>
+          <span class="material-symbols-outlined text-primary-container/50 text-[20px]">group</span>
+        </div>
+        <span class="font-sora text-3xl font-bold text-white">{{ encStats()!.totalStagiaires }}</span>
+      </div>
+
+      <div class="bg-surface border border-white/5 rounded-lg p-5 border-l-[3px] border-l-secondary">
+        <div class="flex justify-between items-start mb-4">
+          <span class="font-plex text-[11px] font-semibold text-white/50 uppercase tracking-wider">Actifs</span>
+          <span class="material-symbols-outlined text-secondary/50 text-[20px]">check_circle</span>
+        </div>
+        <span class="font-sora text-3xl font-bold text-white">{{ encStats()!.stagiairesActifs }}</span>
+      </div>
+
+      <div class="bg-surface border border-white/5 rounded-lg p-5 border-l-[3px] border-l-warning">
+        <div class="flex justify-between items-start mb-4">
+          <span class="font-plex text-[11px] font-semibold text-white/50 uppercase tracking-wider">En retard</span>
+          <span class="material-symbols-outlined text-warning/50 text-[20px]">warning</span>
+        </div>
+        <span class="font-sora text-3xl font-bold text-white">{{ encStats()!.stagiairesEnRetard }}</span>
+      </div>
+
+      <div class="bg-surface border border-white/5 rounded-lg p-5 border-l-[3px] border-l-error">
+        <div class="flex justify-between items-start mb-4">
+          <span class="font-plex text-[11px] font-semibold text-white/50 uppercase tracking-wider">Livrables en attente</span>
+          <span class="material-symbols-outlined text-error/50 text-[20px]">inventory_2</span>
+        </div>
+        <span class="font-sora text-3xl font-bold text-white">{{ encStats()!.livrablesEnAttente }}</span>
+      </div>
+
+      <div class="bg-surface border border-white/5 rounded-lg p-5 border-l-[3px] border-l-tertiary">
+        <div class="flex justify-between items-start mb-4">
+          <span class="font-plex text-[11px] font-semibold text-white/50 uppercase tracking-wider">Évaluations en attente</span>
+          <span class="material-symbols-outlined text-tertiary/50 text-[20px]">rate_review</span>
+        </div>
+        <span class="font-sora text-3xl font-bold text-white">{{ encStats()!.evaluationsEnAttente }}</span>
+      </div>
+
+      <div class="bg-surface border border-white/5 rounded-lg p-5 border-l-[3px] border-l-outline">
+        <div class="flex justify-between items-start mb-4">
+          <span class="font-plex text-[11px] font-semibold text-white/50 uppercase tracking-wider">Terminés</span>
+          <span class="material-symbols-outlined text-outline/50 text-[20px]">archive</span>
+        </div>
+        <span class="font-sora text-3xl font-bold text-white">{{ encStats()!.stagiairesTermines }}</span>
+      </div>
+
+    </div>
+  }
+
+  <!-- ══════════════ STAGIAIRE VIEW ══════════════ -->
+  @if (!loading() && isStagiaire() && stgStats()) {
+
+    @if (stgStats()!.tauxAssiduite < 80) {
+      <div class="mb-6 flex items-center gap-3 bg-warning/10 border border-warning/30 rounded-xl px-4 py-3">
+        <span class="material-symbols-outlined text-warning">warning</span>
+        <span class="font-plex text-sm text-warning">
+          Votre taux d'assiduité est de <strong>{{ stgStats()!.tauxAssiduite | number:'1.0-0' }}%</strong>
+          — en dessous du seuil requis de 80 %.
+        </span>
+      </div>
+    }
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+      <!-- Assiduité -->
+      <div class="bg-surface border border-white/5 rounded-lg p-5 border-l-[3px] border-l-secondary">
+        <div class="flex justify-between items-start mb-4">
+          <span class="font-plex text-[11px] font-semibold text-white/50 uppercase tracking-wider">Assiduité</span>
+          <span class="material-symbols-outlined text-secondary/50 text-[20px]">calendar_today</span>
+        </div>
+        <div class="flex items-baseline gap-1 mb-3">
+          <span class="font-sora text-3xl font-bold text-white">{{ stgStats()!.tauxAssiduite | number:'1.0-0' }}%</span>
+        </div>
+        <div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+          <div class="h-full rounded-full"
+               [style.width.%]="stgStats()!.tauxAssiduite"
+               [style.background]="assiduiteColor(stgStats()!.tauxAssiduite)"></div>
+        </div>
+      </div>
+
+      <!-- Tâches terminées -->
+      <div class="bg-surface border border-white/5 rounded-lg p-5 border-l-[3px] border-l-primary-container">
+        <div class="flex justify-between items-start mb-4">
+          <span class="font-plex text-[11px] font-semibold text-white/50 uppercase tracking-wider">Tâches terminées</span>
+          <span class="material-symbols-outlined text-primary-container/50 text-[20px]">task_alt</span>
+        </div>
+        <div class="flex items-baseline gap-1">
+          <span class="font-sora text-3xl font-bold text-white">{{ stgStats()!.tachesTerminees }}</span>
+          <span class="font-plex text-sm text-white/40">/ {{ stgStats()!.tachesTotal }}</span>
+        </div>
+      </div>
+
+      <!-- Tâches en retard -->
+      <div class="bg-surface border border-white/5 rounded-lg p-5 border-l-[3px] border-l-warning">
+        <div class="flex justify-between items-start mb-4">
+          <span class="font-plex text-[11px] font-semibold text-white/50 uppercase tracking-wider">En retard</span>
+          <span class="material-symbols-outlined text-warning/50 text-[20px]">schedule</span>
+        </div>
+        <span class="font-sora text-3xl font-bold text-white">{{ stgStats()!.tachesEnRetard }}</span>
+        <p class="font-plex text-[10px] text-white/30 mt-2">tâche(s)</p>
+      </div>
+
+      <!-- Note moyenne -->
+      <div class="bg-surface border border-white/5 rounded-lg p-5 border-l-[3px] border-l-tertiary">
+        <div class="flex justify-between items-start mb-4">
+          <span class="font-plex text-[11px] font-semibold text-white/50 uppercase tracking-wider">Note moyenne</span>
+          <span class="material-symbols-outlined text-tertiary/50 text-[20px]">star</span>
+        </div>
+        <div class="flex items-baseline gap-1">
+          <span class="font-sora text-3xl font-bold text-white">{{ stgStats()!.noteMoyenne | number:'1.1-1' }}</span>
+          <span class="font-plex text-sm text-white/40">/20</span>
+        </div>
+      </div>
+
+      <!-- Notifications -->
+      <div class="bg-surface border border-white/5 rounded-lg p-5 border-l-[3px] border-l-error">
+        <div class="flex justify-between items-start mb-4">
+          <span class="font-plex text-[11px] font-semibold text-white/50 uppercase tracking-wider">Notifications</span>
+          <span class="material-symbols-outlined text-error/50 text-[20px]">notifications</span>
+        </div>
+        <span class="font-sora text-3xl font-bold text-white">{{ stgStats()!.notificationsNonLues }}</span>
+        <p class="font-plex text-[10px] text-white/30 mt-2">non lues</p>
+      </div>
+
+      <!-- Statut -->
+      <div class="bg-surface border border-white/5 rounded-lg p-5 border-l-[3px] border-l-outline">
+        <div class="flex justify-between items-start mb-4">
+          <span class="font-plex text-[11px] font-semibold text-white/50 uppercase tracking-wider">Statut</span>
+          <span class="material-symbols-outlined text-outline/50 text-[20px]">info</span>
+        </div>
+        <span class="font-plex text-xs font-bold px-3 py-1.5 rounded-lg uppercase"
+          [class.bg-primary-container]="stgStats()!.statut === 'ACTIF'"
+          [class.text-white]="stgStats()!.statut === 'ACTIF'"
+          [class.bg-warning]="stgStats()!.statut === 'EN_RETARD'"
+          [class.text-on-surface]="stgStats()!.statut === 'EN_RETARD'"
+          [class.bg-white]="stgStats()!.statut === 'TERMINE'"
+          [class.bg-opacity-10]="stgStats()!.statut === 'TERMINE'"
+          [class.text-on-surface-variant]="stgStats()!.statut === 'TERMINE'"
+        >{{ stgStats()!.statut }}</span>
+      </div>
+
+    </div>
+  }
+
+</div>

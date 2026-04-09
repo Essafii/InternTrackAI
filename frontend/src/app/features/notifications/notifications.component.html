@@ -1,60 +1,101 @@
-<div class="page-header">
-  <div class="header-left">
-    <h1>Notifications</h1>
-    <span *ngIf="unreadCount > 0" class="badge badge-danger">{{ unreadCount }} non lue(s)</span>
-  </div>
-  <button
-    class="btn btn-outline"
-    (click)="markAllRead()"
-    [disabled]="markingAll() || unreadCount === 0">
-    {{ markingAll() ? 'En cours...' : '✓ Tout marquer lu' }}
-  </button>
-</div>
+<div class="p-8">
 
-<div *ngIf="error()" class="alert alert-danger">{{ error() }}</div>
-
-<div *ngIf="loading()" class="loading-spinner">
-  <div class="spinner"></div>
-  <span>Chargement...</span>
-</div>
-
-<div *ngIf="!loading()">
-  <div *ngIf="notifications().length === 0" class="empty-state">
-    <p>Aucune notification.</p>
-  </div>
-
-  <div class="notif-list" *ngIf="notifications().length > 0">
-    <div
-      *ngFor="let n of notifications()"
-      class="notif-item"
-      [class]="typeClass(n.type)"
-      [class.notif-unread]="!n.read"
-      (click)="markRead(n)">
-      <div class="notif-icon">{{ typeIcon(n.type) }}</div>
-      <div class="notif-body">
-        <div class="notif-message">{{ n.message }}</div>
-        <div class="notif-meta">
-          <span class="badge badge-type badge-{{ n.type.toLowerCase() }}">{{ n.type }}</span>
-          <span class="notif-date">{{ n.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
-        </div>
-      </div>
-      <div class="notif-status">
-        <span *ngIf="!n.read" class="unread-dot" title="Non lue"></span>
-        <span *ngIf="n.read" class="read-check" title="Lue">✓</span>
-      </div>
+  <!-- Page Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-3">
+      <h1 class="font-sora text-2xl font-bold text-white">Notifications</h1>
+      @if (unreadCount > 0) {
+        <span class="font-plex text-[10px] font-bold px-2.5 py-1 rounded-full bg-error-container text-error uppercase">
+          {{ unreadCount }} non lue(s)
+        </span>
+      }
     </div>
+    <button
+      class="font-plex font-medium text-sm px-4 py-2.5 rounded-xl border border-white/10 text-on-surface-variant hover:bg-white/5 transition-all disabled:opacity-40"
+      (click)="markAllRead()"
+      [disabled]="markingAll() || unreadCount === 0"
+    >
+      @if (markingAll()) { … } @else { Tout marquer lu }
+    </button>
   </div>
 
-  <div class="pagination" *ngIf="totalPages > 1">
-    <button class="btn btn-outline" (click)="goPage(page() - 1)" [disabled]="page() === 0">‹ Préc.</button>
-    <button
-      *ngFor="let p of pages()"
-      class="btn"
-      [class.btn-primary]="p === page()"
-      [class.btn-outline]="p !== page()"
-      (click)="goPage(p)">
-      {{ p + 1 }}
-    </button>
-    <button class="btn btn-outline" (click)="goPage(page() + 1)" [disabled]="page() === totalPages - 1">Suiv. ›</button>
-  </div>
+  @if (error()) {
+    <div class="mb-5 flex items-center gap-2 bg-error-container/20 border border-error/30 rounded-xl px-4 py-3">
+      <span class="material-symbols-outlined text-error text-[18px]">error</span>
+      <span class="font-plex text-sm text-error">{{ error() }}</span>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="flex items-center justify-center h-48">
+      <div class="w-8 h-8 border-2 border-white/20 border-t-primary-container rounded-full animate-spin"></div>
+    </div>
+  } @else if (notifications().length === 0) {
+    <div class="flex flex-col items-center justify-center py-20 text-center">
+      <span class="material-symbols-outlined text-[48px] text-on-surface-variant opacity-20 mb-4">notifications_none</span>
+      <h3 class="font-sora font-semibold text-white mb-2">Aucune notification</h3>
+      <p class="font-plex text-sm text-on-surface-variant opacity-50">Vous êtes à jour !</p>
+    </div>
+  } @else {
+    <div class="space-y-2">
+      @for (n of notifications(); track n.id) {
+        <div
+          class="flex items-start gap-4 bg-surface border border-white/5 rounded-lg p-4 cursor-pointer hover:bg-white/[0.02] transition-all"
+          [class.border-l-2]="!n.lue"
+          [class.border-l-primary-container]="!n.lue"
+          (click)="markRead(n)"
+        >
+          <!-- Icon -->
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+               [style.background]="typeColor(n.type) + '22'"
+               [style.color]="typeColor(n.type)">
+            <span class="material-symbols-outlined text-[18px]">{{ typeIcon(n.type) }}</span>
+          </div>
+
+          <!-- Content -->
+          <div class="flex-1 min-w-0">
+            @if (n.titre) {
+              <p class="font-plex text-sm font-semibold text-white">{{ n.titre }}</p>
+            }
+            <p class="font-plex text-sm text-on-surface-variant leading-snug">{{ n.message }}</p>
+            <div class="flex items-center gap-3 mt-1.5">
+              <span class="font-plex text-[9px] font-bold uppercase tracking-wider" [style.color]="typeColor(n.type)">{{ n.type }}</span>
+              <span class="font-plex text-[10px] text-white/30">{{ n.createdAt | date:'dd/MM HH:mm' }}</span>
+            </div>
+          </div>
+
+          <!-- Status dot -->
+          <div class="flex-shrink-0 mt-1">
+            @if (!n.lue) {
+              <div class="w-2 h-2 rounded-full bg-primary-container"></div>
+            } @else {
+              <span class="material-symbols-outlined text-[14px] text-on-surface-variant opacity-30">check</span>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Pagination -->
+      @if (totalPages > 1) {
+        <div class="flex items-center justify-between pt-4">
+          <span class="font-plex text-sm text-on-surface-variant opacity-50">{{ total() }} notification(s)</span>
+          <div class="flex items-center gap-1">
+            <button class="w-8 h-8 flex items-center justify-center rounded hover:bg-white/5 text-white/40 hover:text-white transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+              (click)="goPage(page()-1)" [disabled]="page()===0">
+              <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+            </button>
+            @for (p of pages(); track p) {
+              <button class="w-8 h-8 flex items-center justify-center rounded font-plex text-sm transition-all"
+                [class.bg-primary-container]="p===page()" [class.text-white]="p===page()"
+                (click)="goPage(p)">{{ p+1 }}</button>
+            }
+            <button class="w-8 h-8 flex items-center justify-center rounded hover:bg-white/5 text-white/40 hover:text-white transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+              (click)="goPage(page()+1)" [disabled]="page()>=totalPages-1">
+              <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
 </div>

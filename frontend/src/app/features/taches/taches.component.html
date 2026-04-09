@@ -1,90 +1,237 @@
-<div class="page-header">
-  <h1>Tâches</h1>
-  <span class="badge badge-info">{{ total() }} tâche(s)</span>
-</div>
+<div class="p-8">
 
-<div class="filters-bar">
-  <select class="form-control" (change)="onFilterEtat($any($event.target).value)">
-    <option *ngFor="let e of etats" [value]="e.value">{{ e.label }}</option>
-  </select>
-
-  <select class="form-control" (change)="onFilterStagiaire($any($event.target).value)">
-    <option value="">Tous les stagiaires</option>
-    <option *ngFor="let s of stagiaires()" [value]="s.id">
-      {{ s.user.firstName }} {{ s.user.lastName }}
-    </option>
-  </select>
-</div>
-
-<div *ngIf="error()" class="alert alert-danger">{{ error() }}</div>
-
-<div *ngIf="loading()" class="loading-spinner">
-  <div class="spinner"></div>
-  <span>Chargement des tâches...</span>
-</div>
-
-<div *ngIf="!loading()">
-  <div *ngIf="taches().length === 0" class="empty-state">
-    <p>Aucune tâche trouvée.</p>
-  </div>
-
-  <div *ngIf="taches().length > 0" class="table-wrapper">
-    <table>
-      <thead>
-        <tr>
-          <th>Titre</th>
-          <th>Stagiaire</th>
-          <th>Deadline</th>
-          <th>Priorité</th>
-          <th>État</th>
-          <th>Changer état</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let tache of taches()" [class.row-overdue]="isOverdue(tache.deadline) && tache.etat !== 'TERMINE'">
-          <td>
-            <strong>{{ tache.titre }}</strong>
-            <div class="text-muted text-sm">{{ tache.description | slice:0:60 }}{{ (tache.description?.length ?? 0) > 60 ? '...' : '' }}</div>
-          </td>
-          <td>
-            <span *ngIf="tache.stagiaire?.user">
-              {{ tache.stagiaire.user.firstName }} {{ tache.stagiaire.user.lastName }}
-            </span>
-          </td>
-          <td>
-            <span [class.text-danger]="isOverdue(tache.deadline) && tache.etat !== 'TERMINE'">
-              {{ tache.deadline | date:'dd/MM/yyyy' }}
-            </span>
-          </td>
-          <td><span [class]="prioriteClass(tache.priorite)">{{ prioriteLabel(tache.priorite) }}</span></td>
-          <td><span [class]="etatClass(tache.etat)">{{ etatLabel(tache.etat) }}</span></td>
-          <td>
-            <select
-              class="form-control form-control-sm"
-              [value]="tache.etat"
-              [disabled]="updatingId() === tache.id"
-              (change)="updateEtat(tache, $any($event.target).value)">
-              <option value="A_FAIRE">À faire</option>
-              <option value="EN_COURS">En cours</option>
-              <option value="TERMINE">Terminé</option>
-              <option value="EN_RETARD">En retard</option>
-            </select>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="pagination" *ngIf="totalPages > 1">
-    <button class="btn btn-outline" (click)="goPage(page() - 1)" [disabled]="page() === 0">‹ Préc.</button>
+  <!-- Page Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="font-sora text-2xl font-bold text-white">Tâches</h1>
+      <p class="font-plex text-sm text-on-surface-variant opacity-60 mt-1">{{ total() }} tâche(s)</p>
+    </div>
     <button
-      *ngFor="let p of pages()"
-      class="btn"
-      [class.btn-primary]="p === page()"
-      [class.btn-outline]="p !== page()"
-      (click)="goPage(p)">
-      {{ p + 1 }}
+      class="flex items-center gap-2 bg-primary-container hover:bg-primary-container/90 text-white font-plex font-semibold text-sm px-4 py-2.5 rounded-xl transition-all"
+      (click)="showForm.set(true)"
+    >
+      <span class="material-symbols-outlined text-[18px]">add</span>
+      Nouvelle tâche
     </button>
-    <button class="btn btn-outline" (click)="goPage(page() + 1)" [disabled]="page() === totalPages - 1">Suiv. ›</button>
+  </div>
+
+  <!-- Alerts -->
+  @if (success()) {
+    <div class="mb-5 flex items-center gap-2 bg-success/10 border border-success/30 rounded-xl px-4 py-3">
+      <span class="material-symbols-outlined text-success text-[18px]">check_circle</span>
+      <span class="font-plex text-sm text-success">{{ success() }}</span>
+    </div>
+  }
+  @if (error()) {
+    <div class="mb-5 flex items-center gap-2 bg-error-container/20 border border-error/30 rounded-xl px-4 py-3">
+      <span class="material-symbols-outlined text-error text-[18px]">error</span>
+      <span class="font-plex text-sm text-error">{{ error() }}</span>
+    </div>
+  }
+
+  <!-- Filters -->
+  <div class="flex flex-wrap items-center gap-3 mb-6">
+    @if (stagiaires().length > 0) {
+      <select
+        class="bg-surface border border-white/10 text-on-surface-variant text-sm rounded-xl px-4 py-2.5 outline-none focus:border-primary-container transition-all cursor-pointer"
+        (change)="onFilterStagiaire($any($event.target).value)"
+      >
+        <option value="">— Sélectionner un stagiaire —</option>
+        @for (s of stagiaires(); track s.id) {
+          <option [value]="s.id">{{ s.fullName }}</option>
+        }
+      </select>
+    }
+    <select
+      class="bg-surface border border-white/10 text-on-surface-variant text-sm rounded-xl px-4 py-2.5 outline-none focus:border-primary-container transition-all cursor-pointer"
+      (change)="onFilterEtat($any($event.target).value)"
+    >
+      @for (e of etats; track e.value) {
+        <option [value]="e.value">{{ e.label }}</option>
+      }
+    </select>
+  </div>
+
+  <!-- Table -->
+  <div class="bg-surface border border-white/5 rounded-lg overflow-hidden">
+    @if (loading()) {
+      <div class="flex items-center justify-center h-48">
+        <div class="w-8 h-8 border-2 border-white/20 border-t-primary-container rounded-full animate-spin"></div>
+      </div>
+    } @else if (taches().length === 0) {
+      <div class="flex flex-col items-center justify-center py-16 text-center">
+        <span class="material-symbols-outlined text-[48px] text-on-surface-variant opacity-20 mb-4">assignment</span>
+        <h3 class="font-sora font-semibold text-white mb-2">Aucune tâche trouvée</h3>
+        <p class="font-plex text-sm text-on-surface-variant opacity-50">Sélectionnez un stagiaire ou créez une nouvelle tâche.</p>
+      </div>
+    } @else {
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead class="bg-white/[0.03] text-[10px] uppercase tracking-wider font-semibold text-white/40">
+            <tr>
+              <th class="px-6 py-3 font-medium">Titre</th>
+              <th class="px-6 py-3 font-medium">Stagiaire</th>
+              <th class="px-6 py-3 font-medium">Deadline</th>
+              <th class="px-6 py-3 font-medium">Priorité</th>
+              <th class="px-6 py-3 font-medium">État</th>
+              <th class="px-6 py-3 font-medium">Modifier état</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/5">
+            @for (tache of taches(); track tache.id) {
+              <tr class="hover:bg-white/[0.02] transition-colors"
+                [class.bg-error-container]="isOverdue(tache.deadline) && tache.etat !== 'TERMINE'"
+                [class.bg-opacity-5]="isOverdue(tache.deadline) && tache.etat !== 'TERMINE'">
+                <td class="px-6 py-4">
+                  <p class="font-plex text-sm font-medium text-white">{{ tache.titre }}</p>
+                  @if (tache.description) {
+                    <p class="font-plex text-[10px] text-white/40 mt-0.5">
+                      {{ tache.description | slice:0:60 }}{{ (tache.description?.length ?? 0) > 60 ? '…' : '' }}
+                    </p>
+                  }
+                </td>
+                <td class="px-6 py-4 font-plex text-sm text-white/60">{{ tache.stagiaireNom }}</td>
+                <td class="px-6 py-4">
+                  <span class="font-plex text-[11px]"
+                    [class.text-error]="isOverdue(tache.deadline) && tache.etat !== 'TERMINE'"
+                    [class.text-white]="!(isOverdue(tache.deadline) && tache.etat !== 'TERMINE')"
+                    [class.opacity-60]="!(isOverdue(tache.deadline) && tache.etat !== 'TERMINE')"
+                  >{{ tache.deadline | date:'dd/MM/yy' }}</span>
+                </td>
+                <td class="px-6 py-4">
+                  <span class="font-plex text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase"
+                    [class.bg-error-container]="(tache.priorite ?? 1) >= 3"
+                    [class.text-error]="(tache.priorite ?? 1) >= 3"
+                    [class.bg-warning]="tache.priorite === 2"
+                    [class.bg-opacity-20]="tache.priorite === 2"
+                    [class.text-warning]="tache.priorite === 2"
+                    [class.bg-white]="(tache.priorite ?? 1) < 2"
+                    [class.bg-opacity-10]="(tache.priorite ?? 1) < 2"
+                    [class.text-white-50]="(tache.priorite ?? 1) < 2"
+                  >{{ (tache.priorite ?? 1) >= 3 ? 'Haute' : tache.priorite === 2 ? 'Moy.' : 'Basse' }}</span>
+                </td>
+                <td class="px-6 py-4">
+                  <span class="font-plex text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase"
+                    [class.bg-success]="tache.etat === 'TERMINE'"
+                    [class.bg-opacity-10]="tache.etat === 'TERMINE'"
+                    [class.text-success]="tache.etat === 'TERMINE'"
+                    [class.bg-error-container]="tache.etat === 'EN_RETARD'"
+                    [class.text-error]="tache.etat === 'EN_RETARD'"
+                    [class.bg-secondary]="tache.etat === 'EN_COURS'"
+                    [class.bg-opacity-20]="tache.etat === 'EN_COURS'"
+                    [class.text-secondary]="tache.etat === 'EN_COURS'"
+                    [class.bg-white]="tache.etat === 'A_FAIRE'"
+                    [class.bg-opacity-5]="tache.etat === 'A_FAIRE'"
+                    [class.text-on-surface-variant]="tache.etat === 'A_FAIRE'"
+                  >{{ etatLabel(tache.etat) }}</span>
+                </td>
+                <td class="px-6 py-4">
+                  <select
+                    class="bg-[#1E2236] border border-white/10 text-on-surface-variant text-xs rounded-lg px-2 py-1.5 outline-none focus:border-primary-container transition-all cursor-pointer disabled:opacity-40"
+                    [value]="tache.etat"
+                    [disabled]="updatingId() === tache.id"
+                    (change)="updateEtat(tache, $any($event.target).value)"
+                  >
+                    <option value="A_FAIRE">À faire</option>
+                    <option value="EN_COURS">En cours</option>
+                    <option value="TERMINE">Terminé</option>
+                    <option value="EN_RETARD">En retard</option>
+                  </select>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="flex items-center justify-between px-6 py-4 border-t border-white/5">
+        <span class="font-plex text-sm text-on-surface-variant opacity-50">{{ total() }} résultat(s)</span>
+        <div class="flex items-center gap-1">
+          <button class="w-8 h-8 flex items-center justify-center rounded hover:bg-white/5 text-white/40 hover:text-white transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+            (click)="goPage(page()-1)" [disabled]="page()===0">
+            <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+          </button>
+          @for (p of pages(); track p) {
+            <button class="w-8 h-8 flex items-center justify-center rounded font-plex text-sm transition-all"
+              [class.bg-primary-container]="p===page()" [class.text-white]="p===page()"
+              (click)="goPage(p)">{{ p+1 }}</button>
+          }
+          <button class="w-8 h-8 flex items-center justify-center rounded hover:bg-white/5 text-white/40 hover:text-white transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+            (click)="goPage(page()+1)" [disabled]="page()>=totalPages-1">
+            <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+          </button>
+        </div>
+      </div>
+    }
   </div>
 </div>
+
+<!-- Slide-over: nouvelle tâche -->
+@if (showForm()) {
+  <div class="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm" (click)="showForm.set(false)"></div>
+  <aside class="fixed top-0 right-0 h-full w-[420px] max-w-full bg-[#141727] border-l border-white/10 z-50 flex flex-col shadow-2xl">
+    <div class="flex items-start justify-between px-6 py-5 border-b border-white/5">
+      <div>
+        <h2 class="font-sora text-[17px] font-bold text-white">Nouvelle tâche</h2>
+        <p class="font-plex text-xs text-on-surface-variant opacity-50 mt-1">Assigner une tâche à un stagiaire</p>
+      </div>
+      <button class="w-8 h-8 flex items-center justify-center rounded hover:bg-white/5 text-white/40 hover:text-white transition-all"
+        (click)="showForm.set(false)">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+      @if (stagiaires().length > 0) {
+        <div class="space-y-1.5">
+          <label class="font-plex text-[12px] font-medium text-on-surface-variant">Stagiaire <span class="text-error">*</span></label>
+          <select class="w-full bg-[#1E2236] border border-white/10 rounded-xl py-2.5 px-3.5 text-sm text-white outline-none focus:border-primary-container transition-all" formControlName="stagiaireId">
+            <option [ngValue]="null">— Sélectionner —</option>
+            @for (s of stagiaires(); track s.id) {
+              <option [ngValue]="s.id">{{ s.fullName }}</option>
+            }
+          </select>
+        </div>
+      }
+
+      <div class="space-y-1.5">
+        <label class="font-plex text-[12px] font-medium text-on-surface-variant">Titre <span class="text-error">*</span></label>
+        <input class="w-full bg-[#1E2236] border border-white/10 rounded-xl py-2.5 px-3.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-primary-container transition-all" formControlName="titre" placeholder="Titre de la tâche" />
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="font-plex text-[12px] font-medium text-on-surface-variant">Description</label>
+        <textarea class="w-full bg-[#1E2236] border border-white/10 rounded-xl py-2.5 px-3.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-primary-container transition-all resize-none" formControlName="description" rows="2" placeholder="Détails de la tâche…"></textarea>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div class="space-y-1.5">
+          <label class="font-plex text-[12px] font-medium text-on-surface-variant">Date début</label>
+          <input class="w-full bg-[#1E2236] border border-white/10 rounded-xl py-2.5 px-3.5 text-sm text-white outline-none focus:border-primary-container transition-all" type="date" formControlName="dateDebut" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="font-plex text-[12px] font-medium text-on-surface-variant">Deadline</label>
+          <input class="w-full bg-[#1E2236] border border-white/10 rounded-xl py-2.5 px-3.5 text-sm text-white outline-none focus:border-primary-container transition-all" type="date" formControlName="deadline" />
+        </div>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="font-plex text-[12px] font-medium text-on-surface-variant">Priorité (1=Basse · 3=Haute)</label>
+        <input class="w-full bg-[#1E2236] border border-white/10 rounded-xl py-2.5 px-3.5 text-sm text-white outline-none focus:border-primary-container transition-all" type="number" formControlName="priorite" min="1" max="3" />
+      </div>
+    </form>
+
+    <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-white/5">
+      <button type="button" class="font-plex font-medium text-sm px-4 py-2.5 rounded-xl border border-white/10 text-on-surface-variant hover:bg-white/5 transition-all"
+        (click)="showForm.set(false)">Annuler</button>
+      <button class="font-plex font-semibold text-sm px-5 py-2.5 rounded-xl bg-primary-container hover:bg-primary-container/90 text-white transition-all disabled:opacity-50 flex items-center gap-2"
+        [disabled]="submitting() || form.invalid" (click)="form.valid && onSubmit()">
+        @if (submitting()) {
+          <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+          Création…
+        } @else { Créer la tâche }
+      </button>
+    </div>
+  </aside>
+}

@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiService } from '../../core/services/api.service';
-import { Notification } from '../../core/models';
+import { NotificationDto } from '../../core/models';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-topbar',
@@ -16,7 +17,7 @@ export class TopbarComponent implements OnDestroy {
   auth = inject(AuthService);
   api = inject(ApiService);
 
-  notifications = signal<Notification[]>([]);
+  notifications = signal<NotificationDto[]>([]);
   showPanel = signal(false);
   private eventSource?: EventSource;
 
@@ -29,18 +30,22 @@ export class TopbarComponent implements OnDestroy {
     });
   }
 
-  get unreadCount(): number { return this.notifications().filter(n => !n.read).length; }
+  get unreadCount(): number {
+    return this.notifications().filter(n => !n.lue).length;
+  }
 
   connectSSE() {
     try {
       const token = this.auth.getToken();
       if (!token) return;
       this.eventSource = new EventSource(
-        `http://localhost:8080/api/sse/subscribe?token=${token}`
+        `${environment.apiUrl}/sse/subscribe?token=${token}`
       );
       this.eventSource.onmessage = () => this.loadNotifications();
     } catch {}
   }
+
+  togglePanel() { this.showPanel.update(v => !v); }
 
   markAllRead() {
     this.api.markAllRead().subscribe(() => this.loadNotifications());

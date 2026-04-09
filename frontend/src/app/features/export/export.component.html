@@ -1,34 +1,43 @@
-<div class="page-header">
-  <h1>Export des données</h1>
-</div>
+<div class="p-8">
 
-<p class="page-subtitle">Téléchargez les données de la plateforme aux formats CSV ou Excel.</p>
-
-<div *ngIf="error()" class="alert alert-danger">{{ error() }}</div>
-
-<div class="export-grid">
-  <div class="export-card" *ngFor="let ex of exports">
-    <div class="export-icon">{{ ex.icon }}</div>
-    <div class="export-info">
-      <h4>{{ ex.label }}</h4>
-      <p>{{ ex.description }}</p>
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="font-sora text-2xl font-bold text-white">Export des données</h1>
+      <p class="font-plex text-sm text-on-surface-variant opacity-60 mt-1">Téléchargez les données au format Excel (.xlsx)</p>
     </div>
-    <button
-      class="btn btn-primary"
-      (click)="ex.action()"
-      [disabled]="isLoading(ex.type, ex.format)">
-      <span *ngIf="isLoading(ex.type, ex.format)">En cours...</span>
-      <span *ngIf="!isLoading(ex.type, ex.format)">⬇ Exporter</span>
-    </button>
   </div>
-</div>
 
-<div class="export-info-box">
-  <h3>Informations sur les exports</h3>
-  <ul>
-    <li><strong>CSV</strong> : Fichier texte séparé par virgules, compatible avec tous les tableurs.</li>
-    <li><strong>Excel (.xlsx)</strong> : Fichier Microsoft Excel avec mise en forme.</li>
-    <li>Les exports incluent toutes les données accessibles selon votre rôle.</li>
-    <li>Les fichiers sont générés en temps réel à partir des données actuelles.</li>
-  </ul>
+  @if (error()) {
+    <div class="mb-5 flex items-center gap-2 bg-error-container/20 border border-error/30 rounded-xl px-4 py-3">
+      <span class="material-symbols-outlined text-error text-[18px]">error</span>
+      <span class="font-plex text-sm text-error">{{ error() }}</span>
+    </div>
+  }
+
+  <div class="grid grid-cols-1 gap-4 max-w-2xl">
+    @for (ex of exports; track ex.key) {
+      <div class="flex items-center justify-between bg-surface border border-white/5 rounded-lg px-5 py-5">
+        <div class="flex items-center gap-4">
+          <div class="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center flex-shrink-0">
+            <span class="material-symbols-outlined text-success text-[20px]">table_chart</span>
+          </div>
+          <div>
+            <p class="font-plex text-sm font-semibold text-white">{{ ex.label }}</p>
+            <p class="font-plex text-[12px] text-on-surface-variant opacity-50 mt-0.5">{{ ex.description }}</p>
+          </div>
+        </div>
+        <button class="flex items-center gap-2 bg-primary-container hover:bg-primary-container/90 text-white font-plex font-semibold text-sm px-4 py-2 rounded-xl transition-all disabled:opacity-50 flex-shrink-0 ml-4"
+          (click)="ex.action()" [disabled]="isLoading(ex.key)">
+          @if (isLoading(ex.key)) {
+            <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+            En cours…
+          } @else {
+            <span class="material-symbols-outlined text-[16px]">download</span>
+            Exporter
+          }
+        </button>
+      </div>
+    }
+  </div>
 </div>

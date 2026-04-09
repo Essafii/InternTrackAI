@@ -1,2 +1,6 @@
-.sujet-cell { max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.text-muted { color: var(--text-secondary); font-size: 12px; }
+/* All styling via Tailwind — see stagiaires.component.html */
+:host { display: block; }
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}

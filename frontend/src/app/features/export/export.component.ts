@@ -5,10 +5,8 @@ import { ApiService } from '../../core/services/api.service';
 interface ExportOption {
   label: string;
   description: string;
+  key: string;
   action: () => void;
-  format: string;
-  type: 'stagiaires' | 'classement';
-  icon: string;
 }
 
 @Component({
@@ -20,74 +18,45 @@ interface ExportOption {
 })
 export class ExportComponent {
   api = inject(ApiService);
-  error = signal('');
+  error      = signal('');
   loadingKey = signal<string | null>(null);
 
   readonly exports: ExportOption[] = [
     {
-      label: 'Stagiaires — CSV',
-      description: 'Exporter la liste complète des stagiaires au format CSV',
-      format: 'csv',
-      type: 'stagiaires',
-      icon: '📄',
-      action: () => this.doExport('stagiaires', 'csv', 'stagiaires.csv')
-    },
-    {
+      key: 'stagiaires',
       label: 'Stagiaires — Excel',
-      description: 'Exporter la liste complète des stagiaires au format Excel (.xlsx)',
-      format: 'xlsx',
-      type: 'stagiaires',
-      icon: '📊',
-      action: () => this.doExport('stagiaires', 'xlsx', 'stagiaires.xlsx')
+      description: 'Liste complète des stagiaires, statuts, scores et encadrants (.xlsx)',
+      action: () => this.doExport('stagiaires', 'stagiaires.xlsx', this.api.exportStagiaires())
     },
     {
-      label: 'Classement — CSV',
-      description: 'Exporter le classement et les scores au format CSV',
-      format: 'csv',
-      type: 'classement',
-      icon: '🏆',
-      action: () => this.doExport('classement', 'csv', 'classement.csv')
+      key: 'absences',
+      label: 'Absences — Excel',
+      description: 'Toutes les absences avec taux d\'assiduité (.xlsx)',
+      action: () => this.doExport('absences', 'absences.xlsx', this.api.exportAbsences())
     },
     {
-      label: 'Classement — Excel',
-      description: 'Exporter le classement et les scores au format Excel (.xlsx)',
-      format: 'xlsx',
-      type: 'classement',
-      icon: '📈',
-      action: () => this.doExport('classement', 'xlsx', 'classement.xlsx')
+      key: 'taches',
+      label: 'Tâches — Excel',
+      description: 'Toutes les tâches et leur état d\'avancement (.xlsx)',
+      action: () => this.doExport('taches', 'taches.xlsx', this.api.exportTaches())
     }
   ];
 
-  private doExport(type: 'stagiaires' | 'classement', format: string, filename: string) {
-    const key = `${type}-${format}`;
+  private doExport(key: string, filename: string, obs: ReturnType<ApiService['exportStagiaires']>) {
     this.loadingKey.set(key);
     this.error.set('');
-    const obs = type === 'stagiaires'
-      ? this.api.exportStagiaires(format)
-      : this.api.exportClassement(format);
-
     obs.subscribe({
-      next: blob => {
-        this.downloadFile(blob, filename);
-        this.loadingKey.set(null);
-      },
-      error: () => {
-        this.error.set(`Erreur lors de l'export ${type} (${format.toUpperCase()}).`);
-        this.loadingKey.set(null);
-      }
+      next: (blob: Blob) => { this.downloadFile(blob, filename); this.loadingKey.set(null); },
+      error: () => { this.error.set(`Erreur lors de l'export ${key}.`); this.loadingKey.set(null); }
     });
   }
 
   private downloadFile(blob: Blob, filename: string) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
+    a.href = url; a.download = filename; a.click();
     URL.revokeObjectURL(url);
   }
 
-  isLoading(type: string, format: string): boolean {
-    return this.loadingKey() === `${type}-${format}`;
-  }
+  isLoading(key: string): boolean { return this.loadingKey() === key; }
 }

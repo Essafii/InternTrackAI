@@ -1,8 +1,9 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
-import { Livrable, Stagiaire } from '../../core/models';
+import { AuthService } from '../../core/services/auth.service';
+import { LivrableDto, StagiaireDto, StatutLivrable, LivrableValidationRequest } from '../../core/models';
 
 @Component({
   selector: 'app-livrables',
@@ -12,125 +13,144 @@ import { Livrable, Stagiaire } from '../../core/models';
   styleUrl: './livrables.component.scss'
 })
 export class LivrablesComponent implements OnInit {
-  api = inject(ApiService);
-  fb = inject(FormBuilder);
+  api  = inject(ApiService);
+  auth = inject(AuthService);
+  fb   = inject(FormBuilder);
 
-  livrables = signal<Livrable[]>([]);
-  stagiaires = signal<Stagiaire[]>([]);
-  loading = signal(true);
-  error = signal('');
-  success = signal('');
-  total = signal(0);
-  page = signal(0);
+  livrables  = signal<LivrableDto[]>([]);
+  stagiaires = signal<StagiaireDto[]>([]);
+  loading    = signal(true);
+  error      = signal('');
+  success    = signal('');
+  total      = signal(0);
+  page       = signal(0);
   readonly pageSize = 10;
-  filterStatut = signal('');
-  showForm = signal(false);
-  submitting = signal(false);
 
-  validatingId = signal<number | null>(null);
-  commentaires = signal<Record<number, string>>({});
+  filterStatut          = signal('');
+  selectedStagiaireId   = signal<number | null>(null);
+  showForm              = signal(false);
+  submitting            = signal(false);
+  validatingId          = signal<number | null>(null);
+  commentaires          = signal<Record<number, string>>({});
+  selectedFile          = signal<File | null>(null);
 
-  selectedFile = signal<File | null>(null);
+  readonly allStatuts: StatutLivrable[] = ['SOUMIS','EN_REVISION','VALIDE','REJETE','CORRECTION_DEMANDEE'];
 
-  form: FormGroup = this.fb.group({
-    stagiaireId: [null, Validators.required],
-    titre: ['', Validators.required],
+  form = this.fb.group({
+    stagiaireId: [null as number | null],
+    titre:       ['', Validators.required],
     description: ['']
   });
 
+  role        = this.auth.currentUser()?.role;
+  isRhOrAdmin = () => ['RH', 'ADMIN'].includes(this.role ?? '');
+  isEncadrant = () => this.role === 'ENCADRANT';
+  isStagiaire = () => this.role === 'STAGIAIRE';
+
   ngOnInit() {
-    this.api.getStagiaires(0, 100).subscribe({
-      next: r => this.stagiaires.set(r.content),
-      error: () => {}
-    });
+    const user = this.auth.currentUser();
+    if (!user) return;
+
+    if (this.isRhOrAdmin()) {
+      this.api.getStagiaires(0, 100).subscribe({ next: r => this.stagiaires.set(r.content), error: () => {} });
+      this.loading.set(false);
+    } else if (this.isEncadrant()) {
+      this.api.getStagiaires(0, 100).subscribe({
+        next: r => {
+          this.stagiaires.set(r.content);
+          if (r.content.length > 0) this.loadForStagiaire(r.content[0].id);
+          else this.loading.set(false);
+        },
+        error: () => this.loading.set(false)
+      });
+    } else {
+      this.api.getStagiaireByUserId(user.userId).subscribe({
+        next: s => this.loadForStagiaire(s.id),
+        error: () => this.loading.set(false)
+      });
+    }
+  }
+
+  loadForStagiaire(id: number) {
+    this.selectedStagiaireId.set(id);
     this.load();
   }
 
   load() {
+    const sid = this.selectedStagiaireId();
+    if (!sid) { this.loading.set(false); return; }
     this.loading.set(true);
-    this.api.getLivrables(this.page(), this.pageSize, undefined, this.filterStatut() || undefined).subscribe({
-      next: r => {
-        this.livrables.set(r.content);
-        this.total.set(r.totalElements);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.error.set('Erreur lors du chargement des livrables.');
-        this.loading.set(false);
-      }
+    this.api.getLivrablesByStagiaire(sid, this.page(), this.pageSize, this.filterStatut() || undefined).subscribe({
+      next: r => { this.livrables.set(r.content); this.total.set(r.totalElements); this.loading.set(false); },
+      error: () => this.loading.set(false)
     });
   }
 
+  onFilterStagiaire(idStr: string) { if (idStr) this.loadForStagiaire(+idStr); }
+  onFilterStatut(val: string) { this.filterStatut.set(val); this.page.set(0); this.load(); }
+
   onFileChange(event: Event) {
     const input = event.target as HTMLInputElement;
-    if (input.files?.length) {
-      this.selectedFile.set(input.files[0]);
-    }
+    if (input.files?.length) this.selectedFile.set(input.files[0]);
   }
 
   onSubmit() {
     if (this.form.invalid || !this.selectedFile()) return;
+    const sid = this.form.value.stagiaireId ?? this.selectedStagiaireId();
+    if (!sid) return;
     this.submitting.set(true);
     const fd = new FormData();
-    fd.append('stagiaireId', this.form.value.stagiaireId);
-    fd.append('titre', this.form.value.titre);
-    fd.append('description', this.form.value.description ?? '');
+    fd.append('titre', this.form.value.titre!);
+    if (this.form.value.description) fd.append('description', this.form.value.description);
     fd.append('fichier', this.selectedFile()!);
-    this.api.uploadLivrable(fd).subscribe({
+    this.api.uploadLivrable(sid, fd).subscribe({
       next: () => {
-        this.success.set('Livrable déposé avec succès.');
+        this.success.set('Livrable déposé.');
         this.form.reset();
         this.selectedFile.set(null);
         this.showForm.set(false);
         this.submitting.set(false);
         this.load();
       },
-      error: () => {
-        this.error.set('Erreur lors du dépôt du livrable.');
-        this.submitting.set(false);
-      }
+      error: (e) => { this.error.set(e.error?.message ?? 'Erreur.'); this.submitting.set(false); }
     });
   }
 
-  setCommentaire(id: number, val: string) {
-    this.commentaires.update(m => ({ ...m, [id]: val }));
-  }
+  setCommentaire(id: number, val: string) { this.commentaires.update(m => ({ ...m, [id]: val })); }
 
-  valider(livrable: Livrable, statut: 'VALIDE' | 'REJETE') {
+  valider(livrable: LivrableDto, statut: StatutLivrable) {
     this.validatingId.set(livrable.id);
-    const commentaire = this.commentaires()[livrable.id] ?? '';
-    this.api.validerLivrable(livrable.id, statut, commentaire).subscribe({
-      next: updated => {
-        this.livrables.update(list => list.map(l => l.id === updated.id ? updated : l));
-        this.validatingId.set(null);
-      },
+    const req: LivrableValidationRequest = { statut, commentaire: this.commentaires()[livrable.id] ?? '' };
+    this.api.validerLivrable(livrable.id, req).subscribe({
+      next: updated => { this.livrables.update(list => list.map(l => l.id === updated.id ? updated : l)); this.validatingId.set(null); },
       error: () => this.validatingId.set(null)
     });
   }
 
-  onFilterStatut(val: string) {
-    this.filterStatut.set(val);
-    this.page.set(0);
-    this.load();
+  download(id: number, fileName: string) {
+    this.api.downloadLivrable(id).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => {}
+    });
   }
 
   goPage(p: number) { this.page.set(p); this.load(); }
   get totalPages(): number { return Math.ceil(this.total() / this.pageSize); }
   pages(): number[] { return Array.from({ length: this.totalPages }, (_, i) => i); }
 
-  statutClass(statut: string): string {
-    const map: Record<string, string> = {
-      EN_ATTENTE: 'badge badge-warning',
-      VALIDE: 'badge badge-success',
-      REJETE: 'badge badge-danger'
+  statutLabel(s: string): string {
+    const m: Record<string, string> = {
+      SOUMIS: 'Soumis', EN_REVISION: 'En révision', VALIDE: 'Validé',
+      REJETE: 'Rejeté', CORRECTION_DEMANDEE: 'Correction demandée'
     };
-    return map[statut] ?? 'badge';
+    return m[s] ?? s;
   }
 
-  statutLabel(statut: string): string {
-    const map: Record<string, string> = {
-      EN_ATTENTE: 'En attente', VALIDE: 'Validé', REJETE: 'Rejeté'
-    };
-    return map[statut] ?? statut;
-  }
+  canValidate(): boolean { return this.isEncadrant() || this.isRhOrAdmin(); }
 }

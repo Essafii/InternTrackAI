@@ -1,74 +1,301 @@
-<div class="page-header">
-  <div>
-    <a routerLink="/app/stagiaires" class="back-link">← Stagiaires</a>
+<div class="p-8">
+
+  <!-- Back + Header -->
+  <div class="flex items-center gap-3 mb-6">
+    <a routerLink="/app/stagiaires"
+      class="flex items-center gap-1.5 font-plex text-sm text-on-surface-variant opacity-50 hover:opacity-100 transition-opacity">
+      <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+      Stagiaires
+    </a>
     @if (stagiaire()) {
-      <h1>{{ stagiaire()!.user.firstName }} {{ stagiaire()!.user.lastName }}</h1>
+      <span class="text-white/20">/</span>
+      <h1 class="font-sora text-xl font-bold text-white">{{ stagiaire()!.fullName }}</h1>
     }
   </div>
-</div>
 
-@if (loading()) {
-  <div class="loading-spinner"><div class="spinner"></div></div>
-} @else if (stagiaire()) {
-  <div class="detail-grid">
-    <div class="card info-card">
-      <div class="card-header"><h3>Informations</h3><span class="badge badge-{{ stagiaire()!.statut | lowercase }}">{{ stagiaire()!.statut }}</span></div>
-      <div class="info-rows">
-        <div class="info-row"><span>Email</span><span>{{ stagiaire()!.user.email }}</span></div>
-        <div class="info-row"><span>Équipe</span><span>{{ stagiaire()!.equipe }}</span></div>
-        <div class="info-row"><span>Établissement</span><span>{{ stagiaire()!.etablissement }}</span></div>
-        <div class="info-row"><span>Spécialité</span><span>{{ stagiaire()!.specialite }}</span></div>
-        <div class="info-row"><span>Encadrant</span><span>{{ stagiaire()!.encadrant?.firstName }} {{ stagiaire()!.encadrant?.lastName }}</span></div>
-        <div class="info-row"><span>Début</span><span>{{ stagiaire()!.dateDebut | date:'dd/MM/yyyy' }}</span></div>
-        <div class="info-row"><span>Fin</span><span>{{ stagiaire()!.dateFin | date:'dd/MM/yyyy' }}</span></div>
+  @if (loading()) {
+    <div class="flex items-center justify-center h-48">
+      <div class="w-8 h-8 border-2 border-white/20 border-t-primary-container rounded-full animate-spin"></div>
+    </div>
+  } @else if (stagiaire()) {
+
+    <!-- Top grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+
+      <!-- Profile card -->
+      <div class="bg-surface border border-white/5 rounded-lg p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-sora text-[14px] font-semibold text-white">Profil</h3>
+          <span class="font-plex text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase"
+            [class.bg-success]="stagiaire()!.statut === 'ACTIF'"
+            [class.bg-opacity-10]="stagiaire()!.statut === 'ACTIF'"
+            [class.text-success]="stagiaire()!.statut === 'ACTIF'"
+            [class.bg-warning]="stagiaire()!.statut === 'EN_RETARD'"
+            [class.text-on-surface]="stagiaire()!.statut === 'EN_RETARD'"
+            [class.bg-white]="stagiaire()!.statut === 'TERMINE' || stagiaire()!.statut === 'ARCHIVE' || stagiaire()!.statut === 'SUSPENDU'"
+            [class.text-on-surface-variant]="stagiaire()!.statut === 'TERMINE' || stagiaire()!.statut === 'ARCHIVE' || stagiaire()!.statut === 'SUSPENDU'"
+          >{{ stagiaire()!.statut }}</span>
+        </div>
+        <div class="space-y-2.5">
+          @for (row of [
+            {label: 'Email',         value: stagiaire()!.email},
+            {label: 'Équipe',        value: stagiaire()!.equipe || '—'},
+            {label: 'Établissement', value: stagiaire()!.etablissement || '—'},
+            {label: 'Niveau',        value: stagiaire()!.niveauEtude || '—'},
+            {label: 'Spécialité',    value: stagiaire()!.specialite || '—'},
+            {label: 'Encadrant',     value: stagiaire()!.encadrantNom || '—'}
+          ]; track row.label) {
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-plex text-[11px] text-on-surface-variant opacity-50 flex-shrink-0">{{ row.label }}</span>
+              <span class="font-plex text-[12px] text-white text-right truncate">{{ row.value }}</span>
+            </div>
+          }
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-plex text-[11px] text-on-surface-variant opacity-50">Début</span>
+            <span class="font-plex text-[12px] text-white">{{ stagiaire()!.dateDebut | date:'dd/MM/yyyy' }}</span>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-plex text-[11px] text-on-surface-variant opacity-50">Fin</span>
+            <span class="font-plex text-[12px] text-white">{{ stagiaire()!.dateFin | date:'dd/MM/yyyy' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sujet card -->
+      <div class="bg-surface border border-white/5 rounded-lg p-5">
+        <h3 class="font-sora text-[14px] font-semibold text-white mb-3">Sujet de stage</h3>
+        <p class="font-plex text-sm text-on-surface-variant leading-relaxed">{{ stagiaire()!.sujet }}</p>
+        @if (stagiaire()!.description) {
+          <p class="font-plex text-[12px] text-white/30 mt-3">{{ stagiaire()!.description }}</p>
+        }
+      </div>
+
+      <!-- Assiduité card -->
+      <div class="bg-surface border border-white/5 rounded-lg p-5"
+        [class.border-error]="assiduite() < 80"
+        [class.border-opacity-30]="assiduite() < 80">
+        <div class="flex items-center justify-between mb-3">
+          <span class="font-plex text-[13px] font-medium text-on-surface-variant">Taux d'assiduité</span>
+          <span class="font-mono text-[22px] font-bold"
+            [style.color]="assiduite() >= 80 ? '#4caf50' : assiduite() >= 60 ? '#FFAE41' : '#D14600'">
+            {{ assiduite() | number:'1.0-1' }}%
+          </span>
+        </div>
+        <div class="h-1.5 bg-white/[0.07] rounded-full overflow-hidden">
+          <div class="h-full rounded-full transition-all duration-500"
+            [style.width.%]="assiduite()"
+            [style.background]="assiduite() >= 80 ? '#4caf50' : assiduite() >= 60 ? '#FFAE41' : '#D14600'">
+          </div>
+        </div>
+        @if (assiduite() < 80) {
+          <p class="font-plex text-[11px] text-error mt-3">⚠ En dessous du seuil minimal — alerte envoyée</p>
+        }
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-header"><h3>Sujet de stage</h3></div>
-      <p>{{ stagiaire()!.sujet }}</p>
-    </div>
+    <!-- Tabs card -->
+    <div class="bg-surface border border-white/5 rounded-lg overflow-hidden">
+      <!-- Tab bar -->
+      <div class="flex border-b border-white/5">
+        @for (tab of [
+          {key: 'taches',      label: 'Tâches',       count: taches().length},
+          {key: 'absences',    label: 'Absences',     count: absences().length},
+          {key: 'evaluations', label: 'Évaluations',  count: evaluations().length},
+          {key: 'livrables',   label: 'Livrables',    count: livrables().length}
+        ]; track tab.key) {
+          <button class="flex items-center gap-1.5 px-5 py-3.5 font-plex text-sm transition-all border-b-2"
+            [class.border-primary-container]="activeTab() === tab.key"
+            [class.text-white]="activeTab() === tab.key"
+            [class.border-transparent]="activeTab() !== tab.key"
+            [class.text-on-surface-variant]="activeTab() !== tab.key"
+            [class.opacity-50]="activeTab() !== tab.key"
+            (click)="activeTab.set($any(tab.key))">
+            {{ tab.label }}
+            <span class="font-plex text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/10">{{ tab.count }}</span>
+          </button>
+        }
+      </div>
 
-    <div class="card assiduite-card" [class.danger]="assiduite() < 80">
-      <div class="stat-label">Taux d'assiduité</div>
-      <div class="assiduite-value">{{ assiduite() | number:'1.0-1' }}%</div>
-      @if (assiduite() < 80) {
-        <div class="alert alert-warning" style="margin-top:8px;margin-bottom:0">⚠️ En dessous du seuil 80%</div>
-      }
-    </div>
-  </div>
+      <div class="p-5">
+        <!-- Tâches tab -->
+        @if (activeTab() === 'taches') {
+          @if (taches().length === 0) {
+            <p class="font-plex text-sm text-on-surface-variant opacity-40">Aucune tâche.</p>
+          } @else {
+            <table class="w-full text-left">
+              <thead class="text-[10px] uppercase tracking-wider text-white/30">
+                <tr>
+                  <th class="pb-3 font-medium">Titre</th>
+                  <th class="pb-3 font-medium">Deadline</th>
+                  <th class="pb-3 font-medium">Priorité</th>
+                  <th class="pb-3 font-medium">État</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-white/5">
+                @for (t of taches(); track t.id) {
+                  <tr>
+                    <td class="py-3 font-plex text-sm text-white">{{ t.titre }}</td>
+                    <td class="py-3 font-plex text-[12px] text-white/50">{{ t.deadline | date:'dd/MM/yy' }}</td>
+                    <td class="py-3">
+                      <span class="font-plex text-[10px] font-bold px-2 py-1 rounded-lg uppercase"
+                        [class.bg-error-container]="(t.priorite??1)>=3"
+                        [class.text-error]="(t.priorite??1)>=3"
+                        [class.bg-warning]="t.priorite===2"
+                        [class.text-on-surface]="t.priorite===2"
+                        [class.bg-white]="(t.priorite??1)<2"
+                        [class.bg-opacity-5]="(t.priorite??1)<2"
+                        [class.text-on-surface-variant]="(t.priorite??1)<2"
+                      >{{ (t.priorite??1)>=3 ? 'Haute' : t.priorite===2 ? 'Moy.' : 'Basse' }}</span>
+                    </td>
+                    <td class="py-3">
+                      <span class="font-plex text-[10px] font-bold px-2 py-1 rounded-lg uppercase"
+                        [class.bg-success]="t.etat === 'TERMINE'"
+                        [class.bg-opacity-10]="t.etat === 'TERMINE'"
+                        [class.text-success]="t.etat === 'TERMINE'"
+                        [class.bg-primary-container]="t.etat === 'EN_COURS'"
+                        [class.text-white]="t.etat === 'EN_COURS'"
+                        [class.bg-warning]="t.etat === 'EN_RETARD'"
+                        [class.text-on-surface]="t.etat === 'EN_RETARD'"
+                        [class.bg-white]="t.etat === 'A_FAIRE'"
+                        [class.text-on-surface-variant]="t.etat === 'A_FAIRE'"
+                      >{{ t.etat }}</span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        }
 
-  <div class="card" style="margin-top:16px">
-    <div class="tabs">
-      <button class="tab" [class.active]="activeTab()==='taches'" (click)="activeTab.set('taches')">Tâches ({{ taches().length }})</button>
-      <button class="tab" [class.active]="activeTab()==='absences'" (click)="activeTab.set('absences')">Absences ({{ absences().length }})</button>
-      <button class="tab" [class.active]="activeTab()==='evaluations'" (click)="activeTab.set('evaluations')">Évaluations ({{ evaluations().length }})</button>
-      <button class="tab" [class.active]="activeTab()==='livrables'" (click)="activeTab.set('livrables')">Livrables ({{ livrables().length }})</button>
-    </div>
+        <!-- Absences tab -->
+        @if (activeTab() === 'absences') {
+          @if (absences().length === 0) {
+            <p class="font-plex text-sm text-on-surface-variant opacity-40">Aucune absence.</p>
+          } @else {
+            <table class="w-full text-left">
+              <thead class="text-[10px] uppercase tracking-wider text-white/30">
+                <tr>
+                  <th class="pb-3 font-medium">Date</th>
+                  <th class="pb-3 font-medium">Type</th>
+                  <th class="pb-3 font-medium">Motif</th>
+                  <th class="pb-3 font-medium">Validée</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-white/5">
+                @for (a of absences(); track a.id) {
+                  <tr>
+                    <td class="py-3 font-plex text-[12px] text-white/50">{{ a.dateAbsence | date:'dd/MM/yyyy' }}</td>
+                    <td class="py-3">
+                      <span class="font-plex text-[10px] font-bold px-2 py-1 rounded-lg uppercase"
+                        [class.bg-error-container]="a.type==='NON_JUSTIFIEE'"
+                        [class.text-error]="a.type==='NON_JUSTIFIEE'"
+                        [class.bg-success]="a.type!=='NON_JUSTIFIEE'"
+                        [class.bg-opacity-10]="a.type!=='NON_JUSTIFIEE'"
+                        [class.text-success]="a.type!=='NON_JUSTIFIEE'"
+                      >{{ a.type }}</span>
+                    </td>
+                    <td class="py-3 font-plex text-[12px] text-white/50">{{ a.motif || '—' }}</td>
+                    <td class="py-3">
+                      <span class="font-plex text-[10px] font-bold px-2 py-1 rounded-lg uppercase"
+                        [class.bg-success]="a.validee"
+                        [class.bg-opacity-10]="a.validee"
+                        [class.text-success]="a.validee"
+                        [class.bg-white]="!a.validee"
+                        [class.bg-opacity-5]="!a.validee"
+                        [class.text-on-surface-variant]="!a.validee"
+                      >{{ a.validee ? 'Oui' : 'Non' }}</span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        }
 
-    @if (activeTab() === 'taches') {
-      <table><thead><tr><th>Titre</th><th>Deadline</th><th>Priorité</th><th>État</th></tr></thead>
-      <tbody>@for (t of taches(); track t.id) {
-        <tr><td>{{ t.titre }}</td><td>{{ t.deadline | date:'dd/MM/yyyy' }}</td><td>P{{ t.priorite }}</td><td><span class="badge badge-{{ t.etat | lowercase }}">{{ t.etat }}</span></td></tr>
-      }</tbody></table>
-    }
-    @if (activeTab() === 'absences') {
-      <table><thead><tr><th>Date</th><th>Motif</th><th>Justifiée</th></tr></thead>
-      <tbody>@for (a of absences(); track a.id) {
-        <tr><td>{{ a.date | date:'dd/MM/yyyy' }}</td><td>{{ a.motif || '—' }}</td><td>{{ a.justifie ? '✅' : '❌' }}</td></tr>
-      }</tbody></table>
-    }
-    @if (activeTab() === 'evaluations') {
-      <table><thead><tr><th>Période</th><th>Score</th><th>Date</th></tr></thead>
-      <tbody>@for (e of evaluations(); track e.id) {
-        <tr><td>{{ e.periode }}</td><td><strong>{{ e.scoreGlobal | number:'1.1-1' }}/5</strong></td><td>{{ e.createdAt | date:'dd/MM/yyyy' }}</td></tr>
-      }</tbody></table>
-    }
-    @if (activeTab() === 'livrables') {
-      <table><thead><tr><th>Titre</th><th>Déposé le</th><th>Statut</th></tr></thead>
-      <tbody>@for (l of livrables(); track l.id) {
-        <tr><td>{{ l.titre }}</td><td>{{ l.dateDepot | date:'dd/MM/yyyy' }}</td><td><span class="badge badge-{{ l.statut | lowercase }}">{{ l.statut }}</span></td></tr>
-      }</tbody></table>
-    }
-  </div>
-}
+        <!-- Évaluations tab -->
+        @if (activeTab() === 'evaluations') {
+          @if (evaluations().length === 0) {
+            <p class="font-plex text-sm text-on-surface-variant opacity-40">Aucune évaluation.</p>
+          } @else {
+            <table class="w-full text-left">
+              <thead class="text-[10px] uppercase tracking-wider text-white/30">
+                <tr>
+                  <th class="pb-3 font-medium">Type</th>
+                  <th class="pb-3 font-medium">Mois</th>
+                  <th class="pb-3 font-medium">Moyenne</th>
+                  <th class="pb-3 font-medium">Validée</th>
+                  <th class="pb-3 font-medium">Date</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-white/5">
+                @for (e of evaluations(); track e.id) {
+                  <tr>
+                    <td class="py-3">
+                      <span class="font-plex text-[10px] font-bold px-2 py-1 rounded-lg uppercase bg-primary-container/20 text-primary-container">{{ e.type }}</span>
+                    </td>
+                    <td class="py-3 font-plex text-sm text-white/50">{{ e.mois ? ('Mois ' + e.mois) : '—' }}</td>
+                    <td class="py-3 font-mono text-[13px] font-bold"
+                      [style.color]="(e.noteMoyenne??0)>=14 ? '#4caf50' : (e.noteMoyenne??0)>=10 ? '#FFAE41' : '#D14600'">
+                      {{ e.noteMoyenne != null ? (e.noteMoyenne | number:'1.1-1') : '—' }}/20
+                    </td>
+                    <td class="py-3">
+                      <span class="font-plex text-[10px] font-bold px-2 py-1 rounded-lg uppercase"
+                        [class.bg-success]="e.validee"
+                        [class.bg-opacity-10]="e.validee"
+                        [class.text-success]="e.validee"
+                        [class.bg-white]="!e.validee"
+                        [class.bg-opacity-5]="!e.validee"
+                        [class.text-on-surface-variant]="!e.validee"
+                      >{{ e.validee ? 'Oui' : 'Non' }}</span>
+                    </td>
+                    <td class="py-3 font-plex text-[12px] text-white/50">{{ e.dateEvaluation | date:'dd/MM/yyyy' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        }
+
+        <!-- Livrables tab -->
+        @if (activeTab() === 'livrables') {
+          @if (livrables().length === 0) {
+            <p class="font-plex text-sm text-on-surface-variant opacity-40">Aucun livrable.</p>
+          } @else {
+            <table class="w-full text-left">
+              <thead class="text-[10px] uppercase tracking-wider text-white/30">
+                <tr>
+                  <th class="pb-3 font-medium">Titre</th>
+                  <th class="pb-3 font-medium">Statut</th>
+                  <th class="pb-3 font-medium">Score IA</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-white/5">
+                @for (l of livrables(); track l.id) {
+                  <tr>
+                    <td class="py-3 font-plex text-sm text-white">{{ l.titre }}</td>
+                    <td class="py-3">
+                      <span class="font-plex text-[10px] font-bold px-2 py-1 rounded-lg uppercase"
+                        [class.bg-success]="l.statut === 'VALIDE'"
+                        [class.bg-opacity-10]="l.statut === 'VALIDE'"
+                        [class.text-success]="l.statut === 'VALIDE'"
+                        [class.bg-error-container]="l.statut === 'REJETE'"
+                        [class.text-error]="l.statut === 'REJETE'"
+                        [class.bg-secondary]="l.statut === 'SOUMIS'"
+                        [class.text-secondary]="l.statut === 'SOUMIS'"
+                        [class.bg-warning]="l.statut === 'CORRECTION_DEMANDEE'"
+                        [class.text-on-surface]="l.statut === 'CORRECTION_DEMANDEE'"
+                      >{{ l.statut }}</span>
+                    </td>
+                    <td class="py-3 font-mono text-[12px]">
+                      {{ l.scoreIA != null ? (l.scoreIA | number:'1.0-1') + '/20' : '—' }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        }
+      </div>
+    </div>
+  }
+</div>

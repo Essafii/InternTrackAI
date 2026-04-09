@@ -18,6 +18,8 @@ export class LoginComponent {
 
   loading = signal(false);
   error = signal('');
+  showPassword = signal(false);
+  readonly gridCells = Array.from({ length: 80 }, (_, i) => i);
 
   form = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -37,4 +39,6 @@ export class LoginComponent {
       }
     });
   }
+
+  togglePassword() { this.showPassword.update(v => !v); }
 }
