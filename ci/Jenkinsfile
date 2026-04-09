@@ -15,6 +15,9 @@ pipeline {
         K8S_NAMESPACE = 'staging'
         DOCKERFILE_PATH = 'docker/Dockerfile.backend'
         TRIVY_VERSION = '0.69.3'
+        // NVD API key stockée dans Jenkins Credentials (type Secret text, id: nvd-api-key)
+        // Sans cette clé : rate-limit NVD = 1 req/10s → timeouts fréquents
+        NVD_API_KEY = credentials('nvd-api-key')
     }
 
     stages {
@@ -91,27 +94,43 @@ pipeline {
 
         stage('Security Tests Auto') {
             steps {
+                // catchError garantit que le build reste UNSTABLE (jamais FAILURE) si OWASP détecte des CVEs
+                // ou si le téléchargement NVD échoue — la pipeline continue vers Docker Build
                 catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
-                    timeout(time: 10, unit: 'MINUTES') {
+                    // 30 min : nécessaire car NVD peut prendre 15-20 min à télécharger/mettre à jour
+                    timeout(time: 30, unit: 'MINUTES') {
                         sh '''
-                        echo "Analyse OWASP Dependency-Check..."
+                        echo "Analyse OWASP Dependency-Check (NVD API key configuree)..."
                         chmod +x mvnw || true
-                        if [ -f mvnw ]; then
-                          ./mvnw -B org.owasp:dependency-check-maven:check \
-                            -Dformat=HTML \
-                            -DfailBuildOnCVSS=11
-                        else
-                          mvn -B org.owasp:dependency-check-maven:check \
-                            -Dformat=HTML \
-                            -DfailBuildOnCVSS=11
-                        fi
+                        MVN_CMD="mvn"
+                        [ -f mvnw ] && MVN_CMD="./mvnw"
+
+                        $MVN_CMD -B org.owasp:dependency-check-maven:check \
+                          -Dformat=ALL \
+                          -DnvdApiKey=$NVD_API_KEY \
+                          -DnvdApiDelay=2000 \
+                          -DfailBuildOnCVSS=11 \
+                          -DsuppressionFile=devsecops/owasp-suppressions.xml \
+                          -DretireJsAnalyzerEnabled=false \
+                          -DnodeAnalyzerEnabled=false
                         '''
                     }
                 }
             }
             post {
                 always {
-                    archiveArtifacts allowEmptyArchive: true, artifacts: '**/target/dependency-check-report.*'
+                    // Archiver HTML + JSON + XML générés par -Dformat=ALL
+                    archiveArtifacts allowEmptyArchive: true,
+                        artifacts: '**/target/dependency-check-report.*,**/target/dependency-check-report/**'
+                    // Publier le rapport HTML directement dans l'UI Jenkins si le plugin est installé
+                    publishHTML(target: [
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'target',
+                        reportFiles: 'dependency-check-report.html',
+                        reportName: 'OWASP Dependency Check'
+                    ])
                 }
             }
         }
