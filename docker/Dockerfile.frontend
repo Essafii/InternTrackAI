@@ -1,5 +1,23 @@
-FROM node:20-alpine
-WORKDIR /app
-COPY . .
-EXPOSE 4200
-CMD ["sh", "-c", "echo Frontend Angular container ready"]
+# ─── Stage 1: Build Angular app ──────────────────────────────────────────────
+# Uncomment this stage once the Angular frontend exists.
+#
+# FROM node:20-alpine AS build
+# WORKDIR /app
+# COPY frontend/package*.json ./
+# RUN npm ci --prefer-offline
+# COPY frontend/ .
+# RUN npm run build -- --configuration production
+
+# ─── Stage 2: Serve with nginx ───────────────────────────────────────────────
+FROM nginx:1.27-alpine
+
+# Replace default config with our SPA config
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+
+# When the Angular build stage is enabled, replace the line below:
+# COPY --from=build /app/dist/intern-track-ai/browser /usr/share/nginx/html
+COPY docker/frontend-placeholder.html /usr/share/nginx/html/index.html
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

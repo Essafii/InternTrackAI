@@ -1,0 +1,57 @@
+rules:
+  # ─── Hardcoded secrets ──────────────────────────────────────────────────────
+  - id: hardcoded-jwt-secret
+    patterns:
+      - pattern: |
+          @Value("${app.jwt.secret:$SECRET}")
+          private String secret = "$SECRET";
+    message: "Hardcoded JWT secret detected"
+    severity: ERROR
+    languages: [java]
+
+  - id: hardcoded-password-in-annotation
+    pattern: |
+      @Value("${...:$PASSWORD}")
+      private String password;
+    message: "Hardcoded password as default in @Value — use environment variable without default"
+    severity: WARNING
+    languages: [java]
+
+  # ─── SQL Injection ───────────────────────────────────────────────────────────
+  - id: sql-injection-string-concat
+    patterns:
+      - pattern: |
+          $QUERY = "SELECT " + $INPUT;
+      - pattern: |
+          entityManager.createNativeQuery($X + $INPUT)
+    message: "Potential SQL injection via string concatenation — use parameterized queries"
+    severity: ERROR
+    languages: [java]
+
+  # ─── Missing authorization ───────────────────────────────────────────────────
+  - id: controller-method-no-preauthorize
+    patterns:
+      - pattern: |
+          @GetMapping(...)
+          public ResponseEntity<...> $METHOD(...) { ... }
+      - pattern-not: |
+          @PreAuthorize(...)
+          @GetMapping(...)
+          public ResponseEntity<...> $METHOD(...) { ... }
+      - pattern-not-inside: |
+          @RequestMapping("/auth/...")
+          class $CLASS { ... }
+    message: "Controller method may be missing @PreAuthorize — verify authorization intentionally"
+    severity: WARNING
+    languages: [java]
+
+  # ─── Logging sensitive data ──────────────────────────────────────────────────
+  - id: log-password
+    patterns:
+      - pattern: log.info("..." + $PASSWORD)
+      - metavariable-regex:
+          metavariable: $PASSWORD
+          regex: ".*(password|secret|token|key).*"
+    message: "Potential logging of sensitive data"
+    severity: WARNING
+    languages: [java]

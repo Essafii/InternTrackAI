@@ -1,0 +1,114 @@
+<div class="p-8">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="font-sora text-2xl font-bold text-white">Journal d'audit</h1>
+      <p class="font-plex text-sm text-on-surface-variant opacity-60 mt-1">{{ total() }} entrée(s) — journal immuable, lecture seule</p>
+    </div>
+  </div>
+
+  <!-- Info banner -->
+  <div class="mb-5 flex items-center gap-2 bg-primary-container/10 border border-primary-container/20 rounded-xl px-4 py-3">
+    <span class="material-symbols-outlined text-primary-container text-[18px]">shield</span>
+    <span class="font-plex text-sm text-on-surface-variant">Toutes les actions sensibles (créations, suppressions, modifications critiques) sont enregistrées de façon permanente.</span>
+  </div>
+
+  @if (error()) {
+    <div class="mb-5 flex items-center gap-2 bg-error-container/20 border border-error/30 rounded-xl px-4 py-3">
+      <span class="material-symbols-outlined text-error text-[18px]">error</span>
+      <span class="font-plex text-sm text-error">{{ error() }}</span>
+    </div>
+  }
+
+  <!-- Action filter -->
+  <div class="mb-6">
+    <select class="bg-surface border border-white/10 text-on-surface-variant text-sm rounded-xl px-4 py-2.5 outline-none focus:border-primary-container transition-all cursor-pointer"
+      (change)="onFilterAction($any($event.target).value)">
+      @for (a of actionTypes; track a) {
+        <option [value]="a">{{ a || 'Toutes les actions' }}</option>
+      }
+    </select>
+  </div>
+
+  <!-- Table -->
+  <div class="bg-surface border border-white/5 rounded-lg overflow-hidden">
+    @if (loading()) {
+      <div class="flex items-center justify-center h-48">
+        <div class="w-8 h-8 border-2 border-white/20 border-t-primary-container rounded-full animate-spin"></div>
+      </div>
+    } @else if (logs().length === 0) {
+      <div class="flex flex-col items-center justify-center py-16 text-center">
+        <span class="material-symbols-outlined text-[48px] text-on-surface-variant opacity-20 mb-4">history</span>
+        <h3 class="font-sora font-semibold text-white mb-2">Aucun log trouvé</h3>
+      </div>
+    } @else {
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead class="bg-white/[0.03] text-[10px] uppercase tracking-wider font-semibold text-white/40">
+            <tr>
+              <th class="px-5 py-3 font-medium">Date</th>
+              <th class="px-5 py-3 font-medium">Utilisateur</th>
+              <th class="px-5 py-3 font-medium">Action</th>
+              <th class="px-5 py-3 font-medium">Entité</th>
+              <th class="px-5 py-3 font-medium text-center">ID</th>
+              <th class="px-5 py-3 font-medium">Détails</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/5">
+            @for (log of logs(); track log.id) {
+              <tr class="hover:bg-white/[0.02] transition-colors">
+                <td class="px-5 py-4 font-mono text-[11px] text-white/40 whitespace-nowrap">
+                  {{ log.timestamp | date:'dd/MM/yy HH:mm:ss' }}
+                </td>
+                <td class="px-5 py-4">
+                  <p class="font-plex text-[12px] font-medium text-white">{{ log.acteur }}</p>
+                  <p class="font-plex text-[10px] text-white/30">{{ log.ipAddress ?? '' }}</p>
+                </td>
+                <td class="px-5 py-4">
+                  <span class="font-plex text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase"
+                    [class.bg-error-container]="log.action?.includes('DELETE') || log.action?.includes('SUPPR')"
+                    [class.text-error]="log.action?.includes('DELETE') || log.action?.includes('SUPPR')"
+                    [class.bg-success]="log.action?.includes('CREATE') || log.action?.includes('CREAT')"
+                    [class.bg-opacity-10]="true"
+                    [class.text-success]="log.action?.includes('CREATE') || log.action?.includes('CREAT')"
+                    [class.bg-warning]="log.action?.includes('UPDATE') || log.action?.includes('MODIF')"
+                    [class.text-on-surface]="log.action?.includes('UPDATE') || log.action?.includes('MODIF')"
+                    [class.bg-white]="!log.action?.includes('DELETE') && !log.action?.includes('CREATE') && !log.action?.includes('UPDATE')"
+                    [class.text-on-surface-variant]="!log.action?.includes('DELETE') && !log.action?.includes('CREATE') && !log.action?.includes('UPDATE')"
+                  >{{ log.action }}</span>
+                </td>
+                <td class="px-5 py-4 font-plex text-[12px] text-white/50">{{ log.entiteType }}</td>
+                <td class="px-5 py-4 font-plex text-[12px] text-white/40 text-center">{{ log.entiteId ?? '—' }}</td>
+                <td class="px-5 py-4 font-plex text-[11px] text-white/40 max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap"
+                  [title]="log.details">
+                  {{ log.details ? (log.details | slice:0:80) + (log.details.length > 80 ? '…' : '') : '—' }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="flex items-center justify-between px-6 py-4 border-t border-white/5">
+        <span class="font-plex text-sm text-on-surface-variant opacity-50">{{ total() }} résultat(s)</span>
+        <div class="flex items-center gap-1">
+          <button class="w-8 h-8 flex items-center justify-center rounded hover:bg-white/5 text-white/40 hover:text-white transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+            (click)="goPage(page()-1)" [disabled]="page()===0">
+            <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+          </button>
+          @for (p of pages(); track p) {
+            <button class="w-8 h-8 flex items-center justify-center rounded font-plex text-sm transition-all"
+              [class.bg-primary-container]="p===page()" [class.text-white]="p===page()"
+              (click)="goPage(p)">{{ p+1 }}</button>
+          }
+          <button class="w-8 h-8 flex items-center justify-center rounded hover:bg-white/5 text-white/40 hover:text-white transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+            (click)="goPage(page()+1)" [disabled]="page()>=totalPages-1">
+            <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</div>

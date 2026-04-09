@@ -1,0 +1,316 @@
+<div class="p-8">
+
+  <!-- Page Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="font-sora text-2xl font-bold text-white">Stagiaires</h1>
+      <p class="font-plex text-sm text-on-surface-variant opacity-60 mt-1">{{ total() }} stagiaire(s) enregistré(s)</p>
+    </div>
+    <button
+      class="flex items-center gap-2 bg-primary-container hover:bg-primary-container/90 text-white font-plex font-semibold text-sm px-4 py-2.5 rounded-xl transition-all"
+      (click)="showOnboarding.set(true)"
+    >
+      <span class="material-symbols-outlined text-[18px]">add</span>
+      Nouveau stagiaire
+    </button>
+  </div>
+
+  <!-- Alerts -->
+  @if (success()) {
+    <div class="mb-5 flex items-center gap-2 bg-success/10 border border-success/30 rounded-xl px-4 py-3">
+      <span class="material-symbols-outlined text-success text-[18px]">check_circle</span>
+      <span class="font-plex text-sm text-success">{{ success() }}</span>
+    </div>
+  }
+  @if (error()) {
+    <div class="mb-5 flex items-center gap-2 bg-error-container/20 border border-error/30 rounded-xl px-4 py-3">
+      <span class="material-symbols-outlined text-error text-[18px]">error</span>
+      <span class="font-plex text-sm text-error">{{ error() }}</span>
+    </div>
+  }
+
+  <!-- Filters -->
+  <div class="flex flex-wrap items-center gap-3 mb-6">
+    <!-- Search -->
+    <div class="relative flex-1 min-w-[200px] max-w-[320px]">
+      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant opacity-40 text-[18px]">search</span>
+      <input
+        type="text"
+        placeholder="Nom, email, sujet…"
+        class="w-full bg-surface border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/25 outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all"
+        (input)="onSearch($any($event.target).value)"
+      />
+    </div>
+    <!-- Status filter -->
+    <select
+      class="bg-surface border border-white/10 text-on-surface-variant text-sm rounded-xl px-4 py-2.5 outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all cursor-pointer"
+      (change)="onStatut($any($event.target).value)"
+    >
+      <option value="">Tous les statuts</option>
+      @for (st of statuts; track st) {
+        <option [value]="st">{{ st | titlecase }}</option>
+      }
+    </select>
+  </div>
+
+  <!-- Table -->
+  <div class="bg-surface border border-white/5 rounded-lg overflow-hidden">
+
+    @if (loading()) {
+      <div class="flex items-center justify-center h-48">
+        <div class="w-8 h-8 border-2 border-white/20 border-t-primary-container rounded-full animate-spin"></div>
+      </div>
+    } @else if (stagiaires().length === 0) {
+      <div class="flex flex-col items-center justify-center py-16 text-center">
+        <span class="material-symbols-outlined text-[48px] text-on-surface-variant opacity-20 mb-4">group</span>
+        <h3 class="font-sora font-semibold text-white mb-2">Aucun stagiaire trouvé</h3>
+        <p class="font-plex text-sm text-on-surface-variant opacity-50">Modifiez vos filtres ou ajoutez un nouveau stagiaire.</p>
+      </div>
+    } @else {
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead class="bg-white/[0.03] text-[10px] uppercase tracking-wider font-semibold text-white/40">
+            <tr>
+              <th class="px-6 py-3 font-medium">Stagiaire</th>
+              <th class="px-6 py-3 font-medium">Équipe</th>
+              <th class="px-6 py-3 font-medium">Sujet</th>
+              <th class="px-6 py-3 font-medium">Encadrant</th>
+              <th class="px-6 py-3 font-medium">Début</th>
+              <th class="px-6 py-3 font-medium">Fin</th>
+              <th class="px-6 py-3 font-medium">Statut</th>
+              <th class="px-6 py-3 font-medium text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/5">
+            @for (s of stagiaires(); track s.id) {
+              <tr class="hover:bg-white/[0.02] transition-colors">
+                <!-- Name + email -->
+                <td class="px-6 py-4">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-primary-container/30 flex items-center justify-center flex-shrink-0">
+                      <span class="font-sora text-xs font-bold text-primary-container">{{ initials(s.fullName) }}</span>
+                    </div>
+                    <div>
+                      <p class="font-plex text-sm font-medium text-white">{{ s.fullName }}</p>
+                      <p class="font-plex text-[10px] text-white/40">{{ s.email }}</p>
+                    </div>
+                  </div>
+                </td>
+                <td class="px-6 py-4 font-plex text-sm text-white/60">{{ s.equipe || '—' }}</td>
+                <td class="px-6 py-4 font-plex text-sm text-white/80 max-w-[160px] truncate">{{ s.sujet }}</td>
+                <td class="px-6 py-4 font-plex text-sm text-white/60">{{ s.encadrantNom || '—' }}</td>
+                <td class="px-6 py-4 font-plex text-[11px] text-white/50">{{ s.dateDebut | date:'dd/MM/yy' }}</td>
+                <td class="px-6 py-4 font-plex text-[11px] text-white/50">{{ s.dateFin | date:'dd/MM/yy' }}</td>
+                <td class="px-6 py-4">
+                  <span class="font-plex text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase"
+                    [class.bg-primary-container]="s.statut === 'ACTIF'"
+                    [class.text-white]="s.statut === 'ACTIF'"
+                    [class.bg-warning]="s.statut === 'EN_RETARD'"
+                    [class.text-on-surface]="s.statut === 'EN_RETARD'"
+                    [class.bg-white]="s.statut !== 'ACTIF' && s.statut !== 'EN_RETARD'"
+                    [class.bg-opacity-10]="s.statut !== 'ACTIF' && s.statut !== 'EN_RETARD'"
+                    [class.text-on-surface-variant]="s.statut !== 'ACTIF' && s.statut !== 'EN_RETARD'"
+                  >{{ s.statut }}</span>
+                </td>
+                <td class="px-6 py-4 text-right">
+                  <a
+                    [routerLink]="['/app/stagiaires', s.id]"
+                    class="w-8 h-8 inline-flex items-center justify-center rounded hover:bg-white/5 text-white/40 hover:text-white transition-all"
+                  >
+                    <span class="material-symbols-outlined text-[18px]">visibility</span>
+                  </a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="flex items-center justify-between px-6 py-4 border-t border-white/5">
+        <span class="font-plex text-sm text-on-surface-variant opacity-50">{{ total() }} résultat(s)</span>
+        <div class="flex items-center gap-1">
+          <button
+            class="w-8 h-8 flex items-center justify-center rounded hover:bg-white/5 text-white/40 hover:text-white transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+            (click)="goPage(page()-1)"
+            [disabled]="page()===0"
+          >
+            <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+          </button>
+          @for (p of pages(); track p) {
+            <button
+              class="w-8 h-8 flex items-center justify-center rounded font-plex text-sm transition-all"
+              [class.bg-primary-container]="p===page()"
+              [class.text-white]="p===page()"
+              [class.text-white-40]="p!==page()"
+              [class.hover:bg-white]="p!==page()"
+              [class.hover:bg-opacity-5]="p!==page()"
+              (click)="goPage(p)"
+            >{{ p+1 }}</button>
+          }
+          <button
+            class="w-8 h-8 flex items-center justify-center rounded hover:bg-white/5 text-white/40 hover:text-white transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+            (click)="goPage(page()+1)"
+            [disabled]="page()>=totalPages-1"
+          >
+            <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- ── Onboarding Slide-over ── -->
+@if (showOnboarding()) {
+  <!-- Backdrop -->
+  <div
+    class="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm"
+    (click)="showOnboarding.set(false)"
+  ></div>
+
+  <!-- Panel -->
+  <aside class="fixed top-0 right-0 h-full w-[480px] max-w-full bg-[#141727] border-l border-white/10 z-50 flex flex-col shadow-2xl">
+
+    <!-- Header -->
+    <div class="flex items-start justify-between px-6 py-5 border-b border-white/5">
+      <div>
+        <h2 class="font-sora text-[17px] font-bold text-white">Nouveau stagiaire</h2>
+        <p class="font-plex text-xs text-on-surface-variant opacity-50 mt-1">Création du compte + dossier de stage</p>
+      </div>
+      <button
+        class="w-8 h-8 flex items-center justify-center rounded hover:bg-white/5 text-white/40 hover:text-white transition-all"
+        (click)="showOnboarding.set(false)"
+        aria-label="Fermer"
+      >
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+
+    <!-- Error inside form -->
+    @if (error()) {
+      <div class="mx-5 mt-4 flex items-center gap-2 bg-error-container/20 border border-error/30 rounded-xl px-4 py-3">
+        <span class="material-symbols-outlined text-error text-[16px]">error</span>
+        <span class="font-plex text-sm text-error">{{ error() }}</span>
+      </div>
+    }
+
+    <!-- Form -->
+    <form [formGroup]="onboardForm" (ngSubmit)="submit()" class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+
+      <p class="font-plex text-[10px] font-bold uppercase tracking-widest text-on-surface-variant opacity-40">Compte utilisateur</p>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div class="space-y-1.5">
+          <label class="font-plex text-[12px] font-medium text-on-surface-variant">Prénom <span class="text-error">*</span></label>
+          <input class="w-full bg-[#1E2236] border border-white/10 rounded-xl py-2.5 px-3.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all" formControlName="firstName" placeholder="Karim" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="font-plex text-[12px] font-medium text-on-surface-variant">Nom <span class="text-error">*</span></label>
+          <input class="w-full bg-[#1E2236] border border-white/10 rounded-xl py-2.5 px-3.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all" formControlName="lastName" placeholder="Benali" />
+        </div>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="font-plex text-[12px] font-medium text-on-surface-variant">Email <span class="text-error">*</span></label>
+        <input class="w-full bg-[#1E2236] border border-white/10 rounded-xl py-2.5 px-3.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all" formControlName="email" type="email" placeholder="karim.benali@emsi.ma" />
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div class="space-y-1.5">
+          <label class="font-plex text-[12px] font-medium text-on-surface-variant">Mot de passe <span class="text-error">*</span></label>
+          <input class="w-full bg-[#1E2236] border border-white/10 rounded-xl py-2.5 px-3.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all" formControlName="password" type="password" placeholder="Min. 6 caractères" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="font-plex text-[12px] font-medium text-on-surface-variant">Téléphone</label>
+          <input class="w-full bg-[#1E2236] border border-white/10 rounded-xl py-2.5 px-3.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all" formControlName="phone" placeholder="+212 6xx xxxxxx" />
+        </div>
+      </div>
+
+      <div class="h-px bg-white/5 my-2"></div>
+      <p class="font-plex text-[10px] font-bold uppercase tracking-widest text-on-surface-variant opacity-40">Dossier de stage</p>
+
+      <div class="space-y-1.5">
+        <label class="font-plex text-[12px] font-medium text-on-surface-variant">Sujet <span class="text-error">*</span></label>
+        <input class="w-full bg-[#1E2236] border border-white/10 rounded-xl py-2.5 px-3.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all" formControlName="sujet" placeholder="Titre du projet de stage" />
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="font-plex text-[12px] font-medium text-on-surface-variant">Description</label>
+        <textarea class="w-full bg-[#1E2236] border border-white/10 rounded-xl py-2.5 px-3.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all resize-none" formControlName="description" rows="2" placeholder="Contexte et objectifs du stage…"></textarea>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div class="space-y-1.5">
+          <label class="font-plex text-[12px] font-medium text-on-surface-variant">Date début <span class="text-error">*</span></label>
+          <input class="w-full bg-[#1E2236] border border-white/10 rounded-xl py-2.5 px-3.5 text-sm text-white outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all" formControlName="dateDebut" type="date" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="font-plex text-[12px] font-medium text-on-surface-variant">Date fin <span class="text-error">*</span></label>
+          <input class="w-full bg-[#1E2236] border border-white/10 rounded-xl py-2.5 px-3.5 text-sm text-white outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all" formControlName="dateFin" type="date" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div class="space-y-1.5">
+          <label class="font-plex text-[12px] font-medium text-on-surface-variant">Équipe</label>
+          <input class="w-full bg-[#1E2236] border border-white/10 rounded-xl py-2.5 px-3.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all" formControlName="equipe" placeholder="DevOps, Cloud…" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="font-plex text-[12px] font-medium text-on-surface-variant">Encadrant</label>
+          <select class="w-full bg-[#1E2236] border border-white/10 rounded-xl py-2.5 px-3.5 text-sm text-white outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all" formControlName="encadrantId">
+            <option [ngValue]="null">— Assigner plus tard —</option>
+            @for (enc of encadrants(); track enc.id) {
+              <option [ngValue]="enc.id">{{ enc.firstName }} {{ enc.lastName }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div class="space-y-1.5">
+          <label class="font-plex text-[12px] font-medium text-on-surface-variant">Établissement</label>
+          <input class="w-full bg-[#1E2236] border border-white/10 rounded-xl py-2.5 px-3.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all" formControlName="etablissement" placeholder="EMSI, ENSIAS…" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="font-plex text-[12px] font-medium text-on-surface-variant">Niveau</label>
+          <select class="w-full bg-[#1E2236] border border-white/10 rounded-xl py-2.5 px-3.5 text-sm text-white outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all" formControlName="niveauEtude">
+            <option value="">— Niveau —</option>
+            @for (n of niveaux; track n) {
+              <option [value]="n">{{ n }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="font-plex text-[12px] font-medium text-on-surface-variant">Spécialité</label>
+        <input class="w-full bg-[#1E2236] border border-white/10 rounded-xl py-2.5 px-3.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all" formControlName="specialite" placeholder="Informatique, Réseaux…" />
+      </div>
+
+    </form>
+
+    <!-- Footer actions -->
+    <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-white/5">
+      <button
+        type="button"
+        class="font-plex font-medium text-sm px-4 py-2.5 rounded-xl border border-white/10 text-on-surface-variant hover:bg-white/5 transition-all"
+        (click)="showOnboarding.set(false)"
+      >Annuler</button>
+      <button
+        type="submit"
+        form="onboardForm"
+        class="font-plex font-semibold text-sm px-5 py-2.5 rounded-xl bg-primary-container hover:bg-primary-container/90 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+        [disabled]="submitting() || onboardForm.invalid"
+        (click)="onboardForm.valid && submit()"
+      >
+        @if (submitting()) {
+          <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+          Création…
+        } @else {
+          Créer le stagiaire
+        }
+      </button>
+    </div>
+  </aside>
+}

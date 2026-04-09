@@ -4,6 +4,7 @@ import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -19,6 +20,9 @@ import java.util.concurrent.ConcurrentHashMap;
 @WebFilter(urlPatterns = { "/api/auth/login", "/api/auth/refresh" })
 public class RateLimitingFilter implements Filter {
 
+    @Value("${app.rate-limit.enabled:true}")
+    private boolean enabled;
+
     private static final int MAX_REQUESTS = 10;
     private static final long WINDOW_MS = 60_000;
 
@@ -30,6 +34,11 @@ public class RateLimitingFilter implements Filter {
             throws IOException, ServletException {
         HttpServletRequest request = (HttpServletRequest) req;
         HttpServletResponse response = (HttpServletResponse) res;
+
+        if (!enabled) {
+            chain.doFilter(req, res);
+            return;
+        }
 
         String uri = request.getRequestURI();
         if (!uri.contains("/auth/login") && !uri.contains("/auth/refresh")) {

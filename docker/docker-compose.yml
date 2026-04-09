@@ -1,22 +1,97 @@
 version: '3.9'
-services:
-  frontend:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.frontend
-    ports:
-      - "4200:4200"
 
+# ─── InternTrackAI — Local Development Stack ─────────────────────────────────
+# Prerequisites:
+#   1. Copy env/dev/.env to project root as .env
+#   2. Add JWT_SECRET to that .env (see env/dev/.env for format)
+#   3. docker compose up --build
+#
+# Services: postgres → backend → frontend   (ai-service: optional)
+# Swagger:  http://localhost:8080/api/swagger-ui.html
+# Frontend: http://localhost:4200
+
+services:
+
+  # ── PostgreSQL ─────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: interntrackai-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-internship_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-internship_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ── Spring Boot Backend ────────────────────────────────────────────────────
   backend:
     build:
       context: ..
       dockerfile: docker/Dockerfile.backend
+    container_name: interntrackai-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     ports:
       - "8080:8080"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-internship_db}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      JWT_SECRET: ${JWT_SECRET}
+      MAIL_MOCK: ${MAIL_MOCK:-true}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-noreply@interntrackai.local}
+      PLATFORM_URL: ${PLATFORM_URL:-http://localhost:4200}
+      UPLOAD_DIR: /app/uploads
+      TEAMS_MOCK: ${TEAMS_MOCK:-true}
+    volumes:
+      - uploads_data:/app/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
+  # ── Angular Frontend (placeholder until Angular app is built) ──────────────
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+    container_name: interntrackai-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "4200:80"
+
+  # ── Python AI Scoring Service ──────────────────────────────────────────────
   ai-service:
     build:
       context: ..
       dockerfile: docker/Dockerfile.ai
+    container_name: interntrackai-ai
+    restart: unless-stopped
     ports:
       - "8000:8000"
+    profiles:
+      - ai  # Only started with: docker compose --profile ai up
+
+volumes:
+  postgres_data:
+  uploads_data:

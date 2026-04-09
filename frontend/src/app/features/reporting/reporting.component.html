@@ -1,0 +1,106 @@
+<div class="p-8">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="font-sora text-2xl font-bold text-white">Rapports</h1>
+      <p class="font-plex text-sm text-on-surface-variant opacity-60 mt-1">Génération et téléchargement des rapports automatiques</p>
+    </div>
+    <button class="flex items-center gap-2 border border-white/10 text-on-surface-variant font-plex font-medium text-sm px-4 py-2.5 rounded-xl hover:bg-white/5 transition-all disabled:opacity-40"
+      (click)="load()" [disabled]="loading()">
+      <span class="material-symbols-outlined text-[18px]">refresh</span>
+      Actualiser
+    </button>
+  </div>
+
+  @if (error()) {
+    <div class="mb-5 flex items-center gap-2 bg-error-container/20 border border-error/30 rounded-xl px-4 py-3">
+      <span class="material-symbols-outlined text-error text-[18px]">error</span>
+      <span class="font-plex text-sm text-error">{{ error() }}</span>
+    </div>
+  }
+
+  <!-- Report type cards -->
+  <div class="grid grid-cols-1 gap-3 mb-8">
+    @for (rt of reportTypes; track rt.type) {
+      <div class="flex items-center justify-between bg-surface border border-white/5 rounded-lg px-5 py-4">
+        <div>
+          <p class="font-plex text-sm font-semibold text-white">{{ rt.label }}</p>
+          <p class="font-plex text-[12px] text-on-surface-variant opacity-50 mt-0.5">{{ rt.description }}</p>
+        </div>
+        <button class="flex items-center gap-2 bg-primary-container hover:bg-primary-container/90 text-white font-plex font-semibold text-sm px-4 py-2 rounded-xl transition-all disabled:opacity-50 flex-shrink-0 ml-4"
+          (click)="generate(rt.type)" [disabled]="generatingType() === rt.type">
+          @if (generatingType() === rt.type) {
+            <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+            Génération…
+          } @else {
+            <span class="material-symbols-outlined text-[16px]">description</span>
+            Générer
+          }
+        </button>
+      </div>
+    }
+  </div>
+
+  <!-- History -->
+  <h2 class="font-sora text-[15px] font-semibold text-white mb-4">Historique</h2>
+
+  <div class="bg-surface border border-white/5 rounded-lg overflow-hidden">
+    @if (loading()) {
+      <div class="flex items-center justify-center h-48">
+        <div class="w-8 h-8 border-2 border-white/20 border-t-primary-container rounded-full animate-spin"></div>
+      </div>
+    } @else if (reports().length === 0) {
+      <div class="flex flex-col items-center justify-center py-16 text-center">
+        <span class="material-symbols-outlined text-[48px] text-on-surface-variant opacity-20 mb-4">description</span>
+        <h3 class="font-sora font-semibold text-white mb-2">Aucun rapport généré</h3>
+        <p class="font-plex text-sm text-on-surface-variant opacity-50">Cliquez sur « Générer » pour créer un premier rapport.</p>
+      </div>
+    } @else {
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead class="bg-white/[0.03] text-[10px] uppercase tracking-wider font-semibold text-white/40">
+            <tr>
+              <th class="px-5 py-3 font-medium">Type</th>
+              <th class="px-5 py-3 font-medium">Statut</th>
+              <th class="px-5 py-3 font-medium">Créé le</th>
+              <th class="px-5 py-3 font-medium"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/5">
+            @for (r of reports(); track r.id) {
+              <tr class="hover:bg-white/[0.02] transition-colors">
+                <td class="px-5 py-4 font-plex text-sm font-medium text-white">{{ r.type }}</td>
+                <td class="px-5 py-4">
+                  <span class="font-plex text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase"
+                    [class.bg-white]="r.statut === 'EN_ATTENTE'"
+                    [class.bg-opacity-5]="r.statut === 'EN_ATTENTE'"
+                    [class.text-on-surface-variant]="r.statut === 'EN_ATTENTE'"
+                    [class.bg-warning]="r.statut === 'EN_COURS'"
+                    [class.text-on-surface]="r.statut === 'EN_COURS'"
+                    [class.bg-success]="r.statut === 'TERMINE'"
+                    [class.text-success]="r.statut === 'TERMINE'"
+                    [class.bg-error-container]="r.statut === 'ERREUR'"
+                    [class.text-error]="r.statut === 'ERREUR'"
+                  >{{ statutLabel(r.statut) }}</span>
+                </td>
+                <td class="px-5 py-4 font-plex text-sm text-white/50">{{ r.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                <td class="px-5 py-4">
+                  @if (r.statut === 'TERMINE') {
+                    <button class="flex items-center gap-1.5 font-plex text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-white/5 text-on-surface-variant hover:bg-white/10 transition-all"
+                      (click)="download(r.id, r.type)">
+                      <span class="material-symbols-outlined text-[14px]">download</span>
+                      Télécharger
+                    </button>
+                  } @else {
+                    <span class="text-white/30">—</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>
