@@ -193,6 +193,7 @@ pipeline {
 
                     kubectl get ns $K8S_NAMESPACE || kubectl create ns $K8S_NAMESPACE
 
+                    kubectl apply -f k8s/configmap.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/postgres.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/deployment.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/service.yaml -n $K8S_NAMESPACE

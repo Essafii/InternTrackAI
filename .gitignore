@@ -75,3 +75,7 @@ venv/
 # ─── Claude Code ────────────────────────────────────────────────────────────
 .claude/
 CLAUDE.md
+
+# ─── Local dev overrides (ne pas commiter) ───────────────────────────────────
+docker/docker-compose.override.yml
+docker/.env
