@@ -219,11 +219,16 @@ pipeline {
                     kubectl apply -f k8s/postgres.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/deployment.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/service.yaml -n $K8S_NAMESPACE
+                    kubectl apply -f k8s/minio.yaml -n $K8S_NAMESPACE
+                    kubectl apply -f k8s/prometheus.yaml -n $K8S_NAMESPACE
+                    kubectl apply -f k8s/fluentbit.yaml -n $K8S_NAMESPACE
 
                     kubectl set image deployment/interntrackai-backend backend=$IMAGE_NAME -n $K8S_NAMESPACE
 
                     kubectl rollout status deployment/postgres -n $K8S_NAMESPACE --timeout=180s
                     kubectl rollout status deployment/interntrackai-backend -n $K8S_NAMESPACE --timeout=180s
+                    kubectl rollout status deployment/minio -n $K8S_NAMESPACE --timeout=120s
+                    kubectl rollout status deployment/prometheus -n $K8S_NAMESPACE --timeout=120s
 
                     kubectl get pods -n $K8S_NAMESPACE
                     kubectl get svc -n $K8S_NAMESPACE
