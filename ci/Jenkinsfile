@@ -216,12 +216,14 @@ pipeline {
                     kubectl get ns $K8S_NAMESPACE || kubectl create ns $K8S_NAMESPACE
 
                     kubectl apply -f k8s/configmap.yaml -n $K8S_NAMESPACE
+                    kubectl apply -f k8s/postgres-pvc.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/postgres.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/deployment.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/service.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/minio.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/prometheus.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/fluentbit.yaml -n $K8S_NAMESPACE
+                    kubectl apply -f k8s/hpa.yaml -n $K8S_NAMESPACE
 
                     kubectl set image deployment/interntrackai-backend backend=$IMAGE_NAME -n $K8S_NAMESPACE
 
