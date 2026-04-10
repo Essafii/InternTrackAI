@@ -135,6 +135,28 @@ pipeline {
             }
         }
 
+        stage('Semgrep Scan') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                    sh '''
+                    echo "Analyse Semgrep (regles custom DevSecOps)..."
+                    docker run --rm \
+                      -v "$(pwd):/src" \
+                      returntocorp/semgrep:latest semgrep \
+                      --config /src/devsecops/semgrep-rules.yml \
+                      --json \
+                      --output /src/semgrep-report.json \
+                      /src/src || true
+                    '''
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts allowEmptyArchive: true, artifacts: 'semgrep-report.json'
+                }
+            }
+        }
+
         stage('Docker Build') {
             steps {
                 sh '''
@@ -205,6 +227,32 @@ pipeline {
 
                     kubectl get pods -n $K8S_NAMESPACE
                     kubectl get svc -n $K8S_NAMESPACE
+                    '''
+                }
+            }
+        }
+
+        stage('Smoke Tests') {
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig-staging', variable: 'KUBECONFIG_FILE')]) {
+                    sh '''
+                    echo "Smoke tests staging..."
+                    export KUBECONFIG=$KUBECONFIG_FILE
+
+                    BACKEND_IP=$(kubectl get svc interntrackai-backend-service \
+                      -n $K8S_NAMESPACE -o jsonpath='{.spec.clusterIP}')
+
+                    kubectl run smoke-health --image=curlimages/curl:8.5.0 \
+                      --restart=Never --rm -i -n $K8S_NAMESPACE \
+                      -- curl -sf --max-time 10 \
+                      http://${BACKEND_IP}:8080/api/actuator/health | grep -q "UP"
+                    echo "✓ /api/actuator/health = UP"
+
+                    kubectl run smoke-api --image=curlimages/curl:8.5.0 \
+                      --restart=Never --rm -i -n $K8S_NAMESPACE \
+                      -- curl -sf --max-time 10 \
+                      http://${BACKEND_IP}:8080/api/v3/api-docs | grep -q "openapi"
+                    echo "✓ /api/v3/api-docs = OK"
                     '''
                 }
             }
