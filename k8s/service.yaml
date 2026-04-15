@@ -1,30 +1,8 @@
-# ─── InternTrackAI — Kubernetes Services ─────────────────────────────────────
-
----
-# ─── PostgreSQL Service (ClusterIP — internal only) ──────────────────────────
-apiVersion: v1
-kind: Service
-metadata:
-  name: interntrackai-postgres-service
-  labels:
-    app: interntrackai-postgres
-spec:
-  selector:
-    app: interntrackai-postgres
-  ports:
-    - protocol: TCP
-      port: 5432
-      targetPort: 5432
-  type: ClusterIP
-
----
-# ─── Backend Service (NodePort — accessible from Minikube) ───────────────────
 apiVersion: v1
 kind: Service
 metadata:
   name: interntrackai-backend-service
-  labels:
-    app: interntrackai-backend
+  namespace: staging
 spec:
   selector:
     app: interntrackai-backend
@@ -32,5 +10,4 @@ spec:
     - protocol: TCP
       port: 8080
       targetPort: 8080
-      nodePort: 30080
   type: NodePort

@@ -1,3 +1,234 @@
-// DEPRECATED — This file is superseded by /Jenkinsfile at the project root.
-// This ci/ folder is kept for historical reference only.
-// Configure your Jenkins job to use: Jenkinsfile (root of repository)
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+        skipDefaultCheckout(true)
+    }
+
+    environment {
+        IMAGE_NAME = 'zakariael3/interntrackai-backend:latest'
+        SONAR_SERVER = 'sonarqube-local'
+        SONAR_PROJECT_KEY = 'interntrackai-backend'
+        SONAR_PROJECT_NAME = 'InternTrackAI Backend'
+        K8S_NAMESPACE = 'staging'
+        DOCKERFILE_PATH = 'docker/Dockerfile.backend'
+        TRIVY_VERSION = '0.69.3'
+        // NVD API key stockée dans Jenkins Credentials (type Secret text, id: nvd-api-key)
+        // Sans cette clé : rate-limit NVD = 1 req/10s → timeouts fréquents
+        NVD_API_KEY = credentials('nvd-api-key')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh '''
+                echo "Construction du projet..."
+                chmod +x mvnw || true
+                if [ -f mvnw ]; then
+                  ./mvnw -B -DskipTests clean compile
+                else
+                  mvn -B -DskipTests clean compile
+                fi
+                '''
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh '''
+                echo "Execution des tests..."
+                chmod +x mvnw || true
+                if [ -f mvnw ]; then
+                  ./mvnw -B test
+                else
+                  mvn -B test
+                fi
+                '''
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('SonarQube Scan') {
+            steps {
+                withSonarQubeEnv("${SONAR_SERVER}") {
+                    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                        sh '''
+                        echo "Analyse SonarQube..."
+                        chmod +x mvnw || true
+                        if [ -f mvnw ]; then
+                          ./mvnw -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+                            -Dsonar.projectKey=$SONAR_PROJECT_KEY \
+                            -Dsonar.projectName="$SONAR_PROJECT_NAME" \
+                            -Dsonar.token=$SONAR_TOKEN
+                        else
+                          mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+                            -Dsonar.projectKey=$SONAR_PROJECT_KEY \
+                            -Dsonar.projectName="$SONAR_PROJECT_NAME" \
+                            -Dsonar.token=$SONAR_TOKEN
+                        fi
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 1, unit: 'HOURS') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('Security Tests Auto') {
+            steps {
+                // catchError garantit que le build reste UNSTABLE (jamais FAILURE) si OWASP détecte des CVEs
+                // ou si le téléchargement NVD échoue — la pipeline continue vers Docker Build
+                catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                    // 30 min : nécessaire car NVD peut prendre 15-20 min à télécharger/mettre à jour
+                    timeout(time: 30, unit: 'MINUTES') {
+                        sh '''
+                        echo "Analyse OWASP Dependency-Check (NVD API key configuree)..."
+                        chmod +x mvnw || true
+                        MVN_CMD="mvn"
+                        [ -f mvnw ] && MVN_CMD="./mvnw"
+
+                        $MVN_CMD -B org.owasp:dependency-check-maven:check \
+                          -Dformat=ALL \
+                          -DnvdApiKey=$NVD_API_KEY \
+                          -DnvdApiDelay=2000 \
+                          -DfailBuildOnCVSS=11 \
+                          -DsuppressionFile=devsecops/owasp-suppressions.xml \
+                          -DretireJsAnalyzerEnabled=false \
+                          -DnodeAnalyzerEnabled=false
+                        '''
+                    }
+                }
+            }
+            post {
+                always {
+                    // Archiver HTML + JSON + XML générés par -Dformat=ALL
+                    archiveArtifacts allowEmptyArchive: true,
+                        artifacts: '**/target/dependency-check-report.*,**/target/dependency-check-report/**'
+                    // Publier le rapport HTML directement dans l'UI Jenkins si le plugin est installé
+                    publishHTML(target: [
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'target',
+                        reportFiles: 'dependency-check-report.html',
+                        reportName: 'OWASP Dependency Check'
+                    ])
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                sh '''
+                echo "Build image Docker..."
+                docker pull eclipse-temurin:17-jdk-alpine
+                docker build --no-cache -t $IMAGE_NAME -f $DOCKERFILE_PATH .
+                '''
+            }
+        }
+
+        stage('Image Security Scan') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                    sh '''
+                    set -o pipefail
+                    echo "Scan Trivy de l'image Docker..."
+                    docker run --rm \
+                      -v /var/run/docker.sock:/var/run/docker.sock \
+                      aquasec/trivy:$TRIVY_VERSION image \
+                      --severity HIGH,CRITICAL \
+                      --ignore-unfixed \
+                      --exit-code 1 \
+                      $IMAGE_NAME | tee trivy-image-report.txt
+                    '''
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts allowEmptyArchive: true, artifacts: 'trivy-image-report.txt'
+                }
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                    echo "Push image DockerHub..."
+                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    docker push $IMAGE_NAME
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy Staging') {
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig-staging', variable: 'KUBECONFIG_FILE')]) {
+                    sh '''
+                    echo "Deploiement Kubernetes sur staging..."
+                    export KUBECONFIG=$KUBECONFIG_FILE
+
+                    kubectl get ns $K8S_NAMESPACE || kubectl create ns $K8S_NAMESPACE
+
+                    kubectl apply -f k8s/configmap.yaml -n $K8S_NAMESPACE
+                    kubectl apply -f k8s/postgres.yaml -n $K8S_NAMESPACE
+                    kubectl apply -f k8s/deployment.yaml -n $K8S_NAMESPACE
+                    kubectl apply -f k8s/service.yaml -n $K8S_NAMESPACE
+
+                    kubectl set image deployment/interntrackai-backend backend=$IMAGE_NAME -n $K8S_NAMESPACE
+
+                    kubectl rollout status deployment/postgres -n $K8S_NAMESPACE --timeout=180s
+                    kubectl rollout status deployment/interntrackai-backend -n $K8S_NAMESPACE --timeout=180s
+
+                    kubectl get pods -n $K8S_NAMESPACE
+                    kubectl get svc -n $K8S_NAMESPACE
+                    '''
+                }
+            }
+        }
+
+        stage('Report') {
+            steps {
+                echo 'Generation du rapport...'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline executee avec succes.'
+        }
+        unstable {
+            echo 'Pipeline terminee avec avertissements.'
+        }
+        failure {
+            echo 'La pipeline a echoue.'
+        }
+        always {
+            sh 'docker logout || true'
+        }
+    }
+}

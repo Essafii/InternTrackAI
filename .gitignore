@@ -26,6 +26,7 @@ application-local.properties
 # ─── Secrets — NEVER commit real credentials ────────────────────────────────
 .env
 env/prod/.env
+kubeconfig-jenkins.yaml
 *.pem
 *.key
 *.p12
@@ -47,7 +48,7 @@ k8s/*-secret.yaml
 *.log
 logs/
 
-# ─── Internal / personal docs — keep in OneDrive, not in repo ───────────────
+# ─── Internal / personal docs — keep in OneDrive, not in repo ──────────────
 planning/supervisor-meeting-*.md
 planning/*-meeting-*.md
 docs/internal/
@@ -71,6 +72,10 @@ __pycache__/
 venv/
 *.egg-info/
 
-# ─── Claude Code ─────────────────────────────────────────────────────────────
+# ─── Claude Code ────────────────────────────────────────────────────────────
 .claude/
 CLAUDE.md
+
+# ─── Local dev overrides (ne pas commiter) ───────────────────────────────────
+docker/docker-compose.override.yml
+docker/.env
