@@ -26,10 +26,9 @@ data:
         Regex   log .*
 
     [OUTPUT]
-        Name  file
-        Match interntrackai.*
-        Path  /var/log/interntrackai
-        File  backend.log
+        Name   stdout
+        Match  interntrackai.*
+        Format json_lines
 
   parsers.conf: |
     [PARSER]
@@ -62,8 +61,6 @@ spec:
             - name: varlog
               mountPath: /var/log
               readOnly: true
-            - name: logoutput
-              mountPath: /var/log/interntrackai
           resources:
             requests:
               cpu: "50m"
@@ -78,8 +75,6 @@ spec:
         - name: varlog
           hostPath:
             path: /var/log
-        - name: logoutput
-          emptyDir: {}
 ---
 apiVersion: v1
 kind: ServiceAccount

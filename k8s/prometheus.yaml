@@ -17,9 +17,9 @@ data:
           - targets: ['interntrackai-backend-service:8080']
         scrape_interval: 15s
 
-      - job_name: 'postgres'
-        static_configs:
-          - targets: ['postgres:5432']
+      # job_name: 'postgres' supprime — postgres:5432 est un port SQL,
+      # pas un endpoint Prometheus. Ajouter postgres_exporter (port 9187)
+      # si les metriques PostgreSQL sont requises.
 ---
 apiVersion: apps/v1
 kind: Deployment

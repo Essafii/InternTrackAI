@@ -9,6 +9,9 @@ services:
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.retention.time=7d"
+    extra_hosts:
+      # Permet d'atteindre les conteneurs hotes sur Docker Desktop Windows et Linux
+      - "host.docker.internal:host-gateway"
     networks:
       - monitoring
 
@@ -18,8 +21,10 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      # Surcharger via docker/.env (deja dans .gitignore)
+      # Exemple : GF_ADMIN_USER=admin  GF_ADMIN_PASSWORD=changeme
+      - GF_SECURITY_ADMIN_USER=${GF_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana-data:/var/lib/grafana
