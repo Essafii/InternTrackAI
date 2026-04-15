@@ -109,7 +109,7 @@ pipeline {
                           -Dformat=ALL \
                           -DnvdApiKey=$NVD_API_KEY \
                           -DnvdApiDelay=2000 \
-                          -DfailBuildOnCVSS=11 \
+                          -DfailBuildOnCVSS=7 \
                           -DsuppressionFile=devsecops/owasp-suppressions.xml \
                           -DretireJsAnalyzerEnabled=false \
                           -DnodeAnalyzerEnabled=false
