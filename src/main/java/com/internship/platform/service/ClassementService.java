@@ -36,32 +36,28 @@ public class ClassementService {
 
         List<ClassementDto> classement = stagiaires.stream()
                 .filter(s -> s.getStatut() == StatutStagiaire.ACTIF || s.getStatut() == StatutStagiaire.TERMINE)
-                .map(this::calculerScore)
+                .map(this::computeScore)
                 .sorted(Comparator.comparingDouble(ClassementDto::getScoreGlobal).reversed())
                 .collect(Collectors.toList());
 
-        // Assign ranks
         for (int i = 0; i < classement.size(); i++) {
             classement.get(i).setRang(i + 1);
         }
         return classement;
     }
 
-    private ClassementDto calculerScore(Stagiaire s) {
+    public ClassementDto computeScore(Stagiaire s) {
         ClassementDto dto = new ClassementDto();
         dto.setStagiaireId(s.getId());
         dto.setStagiaireNom(s.getUser().getFullName());
         dto.setEquipe(s.getEquipe());
 
-        // Note moyenne évaluations (40%)
         double noteMoyenne = evaluationRepository.findAverageNoteByStaigaire(s.getId()).orElse(0.0);
         dto.setNoteMoyenne(noteMoyenne);
 
-        // Taux assiduité (25%)
         double assiduite = absenceService.calculerTauxAssiduite(s.getId());
         dto.setTauxAssiduite(assiduite);
 
-        // Taux de tâches terminées (25%)
         long total = tacheRepository.findByStagiaireId(s.getId()).size();
         long terminees = tacheRepository.countByEtat(s.getId(), EtatTache.TERMINE);
         long enRetard = tacheRepository.countByEtat(s.getId(), EtatTache.EN_RETARD);
@@ -70,17 +66,12 @@ public class ClassementService {
         dto.setTauxTachesTerminees(tauxTaches);
         dto.setTauxRetard(tauxRetard);
 
-        // Score global pondéré (sur 100)
         double scoreGlobal = (noteMoyenne / 20.0 * 40) + (assiduite / 100.0 * 25) + (tauxTaches / 100.0 * 25);
 
-        // Indice de risque IA (10%) - simple heuristic
         double risqueIA = 0;
-        if (assiduite < 80)
-            risqueIA += 5;
-        if (tauxRetard > 30)
-            risqueIA += 5;
-        if (noteMoyenne < 10)
-            risqueIA += 5;
+        if (assiduite < 80) risqueIA += 5;
+        if (tauxRetard > 30) risqueIA += 5;
+        if (noteMoyenne < 10) risqueIA += 5;
         dto.setRisqueIA(Math.min(risqueIA, 10));
 
         scoreGlobal += (10 - dto.getRisqueIA());
