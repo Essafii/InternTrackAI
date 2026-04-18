@@ -18,7 +18,7 @@ public class ScheduledTasksService {
     @Scheduled(cron = "0 0 9 * * MON")
     public void recalculerClassementHebdomadaire() {
         long count = stagiaireRepository.countByStatut(StatutStagiaire.ACTIF);
-        classementService.calculerClassement();
+        classementService.getClassement(null, null);
         log.info("Weekly scoring recalculation completed for {} stagiaires", count);
     }
 }

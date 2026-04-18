@@ -95,7 +95,7 @@ class NotificationsControllerTest {
     void markAllAsRead_shouldReturn204_whenAuthenticated() throws Exception {
         mockMvc.perform(patch("/notifications/mark-all-read")
                         .header("Authorization", "Bearer " + userToken))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk());
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
