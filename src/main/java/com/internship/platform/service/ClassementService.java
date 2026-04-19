@@ -2,11 +2,8 @@ package com.internship.platform.service;
 
 import com.internship.platform.dto.classement.ClassementDto;
 import com.internship.platform.entity.Stagiaire;
-import com.internship.platform.entity.enums.EtatTache;
 import com.internship.platform.entity.enums.StatutStagiaire;
-import com.internship.platform.repository.EvaluationRepository;
 import com.internship.platform.repository.StagiaireRepository;
-import com.internship.platform.repository.TacheRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,9 +16,7 @@ import java.util.stream.Collectors;
 public class ClassementService {
 
     private final StagiaireRepository stagiaireRepository;
-    private final EvaluationRepository evaluationRepository;
-    private final TacheRepository tacheRepository;
-    private final AbsenceService absenceService;
+    private final ScoringDomainService scoringDomainService;
 
     public List<ClassementDto> getClassement(Long encadrantId, String equipe) {
         List<Stagiaire> stagiaires;
@@ -36,7 +31,7 @@ public class ClassementService {
 
         List<ClassementDto> classement = stagiaires.stream()
                 .filter(s -> s.getStatut() == StatutStagiaire.ACTIF || s.getStatut() == StatutStagiaire.TERMINE)
-                .map(this::computeScore)
+                .map(this::toDto)
                 .sorted(Comparator.comparingDouble(ClassementDto::getScoreGlobal).reversed())
                 .collect(Collectors.toList());
 
@@ -47,36 +42,21 @@ public class ClassementService {
     }
 
     public ClassementDto computeScore(Stagiaire s) {
+        return toDto(s);
+    }
+
+    private ClassementDto toDto(Stagiaire s) {
+        ScoringResult result = scoringDomainService.computeScore(s.getId());
         ClassementDto dto = new ClassementDto();
         dto.setStagiaireId(s.getId());
         dto.setStagiaireNom(s.getUser().getFullName());
         dto.setEquipe(s.getEquipe());
-
-        double noteMoyenne = evaluationRepository.findAverageNoteByStaigaire(s.getId()).orElse(0.0);
-        dto.setNoteMoyenne(noteMoyenne);
-
-        double assiduite = absenceService.calculerTauxAssiduite(s.getId());
-        dto.setTauxAssiduite(assiduite);
-
-        long total = tacheRepository.findByStagiaireId(s.getId()).size();
-        long terminees = tacheRepository.countByEtat(s.getId(), EtatTache.TERMINE);
-        long enRetard = tacheRepository.countByEtat(s.getId(), EtatTache.EN_RETARD);
-        double tauxTaches = total > 0 ? (terminees / (double) total) * 100 : 100.0;
-        double tauxRetard = total > 0 ? (enRetard / (double) total) * 100 : 0.0;
-        dto.setTauxTachesTerminees(tauxTaches);
-        dto.setTauxRetard(tauxRetard);
-
-        double scoreGlobal = (noteMoyenne / 20.0 * 40) + (assiduite / 100.0 * 25) + (tauxTaches / 100.0 * 25);
-
-        double risqueIA = 0;
-        if (assiduite < 80) risqueIA += 5;
-        if (tauxRetard > 30) risqueIA += 5;
-        if (noteMoyenne < 10) risqueIA += 5;
-        dto.setRisqueIA(Math.min(risqueIA, 10));
-
-        scoreGlobal += (10 - dto.getRisqueIA());
-        dto.setScoreGlobal(Math.min(scoreGlobal, 100));
-
+        dto.setNoteMoyenne(result.noteMoyenne());
+        dto.setTauxAssiduite(result.tauxAssiduite());
+        dto.setTauxTachesTerminees(result.tauxTachesTerminees());
+        dto.setTauxRetard(result.tauxRetard());
+        dto.setRisqueIA(result.risque());
+        dto.setScoreGlobal(result.scoreGlobal());
         return dto;
     }
 }
