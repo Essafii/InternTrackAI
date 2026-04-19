@@ -33,6 +33,8 @@ public class ReportingController {
             @AuthenticationPrincipal CustomUserDetails principal) {
         ReportJobDto job = reportingService.createJob(
                 principal.getUser(), request.getType(), request.getStagiaireCibleId());
+        // createJob() transaction committed — safe to launch async generation
+        reportingService.generateAsync(job.getId());
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(job);
     }
 

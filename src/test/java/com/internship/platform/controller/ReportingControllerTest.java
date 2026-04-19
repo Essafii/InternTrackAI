@@ -2,25 +2,30 @@ package com.internship.platform.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.internship.platform.entity.ReportJob;
 import com.internship.platform.entity.User;
 import com.internship.platform.entity.enums.Role;
-import com.internship.platform.entity.enums.TypeRapport;
+import com.internship.platform.entity.enums.StatutRapport;
+import com.internship.platform.repository.RefreshTokenRepository;
+import com.internship.platform.repository.ReportJobRepository;
 import com.internship.platform.repository.UserRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -28,16 +33,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Tests d'acceptance — EPIC 5 Reporting
  * US-30: Générer un rapport PDF pour un stagiaire
  * US-32: Consulter la liste des rapports générés
+ *
+ * NOT @Transactional — async generation thread needs to see committed data.
+ * Cleanup handled manually in @AfterEach.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@Transactional
 class ReportingControllerTest {
 
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
     @Autowired UserRepository userRepository;
+    @Autowired ReportJobRepository reportJobRepository;
+    @Autowired RefreshTokenRepository refreshTokenRepository;
     @Autowired PasswordEncoder passwordEncoder;
 
     private String rhToken;
@@ -45,6 +54,9 @@ class ReportingControllerTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        // Idempotent setup — delete if left over from a previous run
+        cleanUsers();
+
         userRepository.save(User.builder()
                 .email("rh@reporting.test").password(passwordEncoder.encode("Rh1234!"))
                 .firstName("RH").lastName("Report").role(Role.RH).enabled(true).build());
@@ -57,10 +69,15 @@ class ReportingControllerTest {
         stagiaireToken = loginAndGetToken("stg@reporting.test", "Stg1234!");
     }
 
+    @AfterEach
+    void tearDown() {
+        cleanUsers();
+    }
+
     // ─── US-30 : Générer un rapport ────────────────────────────────────────────
 
     @Test
-    void generateReport_shouldReturn202WithJob_whenCalledByRH() throws Exception {
+    void generateReport_shouldReturn202WithPendingJob_whenCalledByRH() throws Exception {
         mockMvc.perform(post("/reporting/generate")
                         .header("Authorization", "Bearer " + rhToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -69,7 +86,7 @@ class ReportingControllerTest {
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.type").value("RAPPORT_CAMPAGNE"))
-                .andExpect(jsonPath("$.statut").isNotEmpty());
+                .andExpect(jsonPath("$.statut").value("EN_ATTENTE"));
     }
 
     @Test
@@ -80,6 +97,40 @@ class ReportingControllerTest {
                         .content(objectMapper.writeValueAsString(
                                 Map.of("type", "RAPPORT_CAMPAGNE"))))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void generateReport_shouldCompleteWithTermineStatus_afterAsync() throws Exception {
+        MvcResult result = mockMvc.perform(post("/reporting/generate")
+                        .header("Authorization", "Bearer " + rhToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                Map.of("type", "RAPPORT_CAMPAGNE"))))
+                .andExpect(status().isAccepted())
+                .andReturn();
+
+        Long jobId = objectMapper.readTree(result.getResponse().getContentAsString())
+                .get("id").asLong();
+
+        // Poll DB until async thread finishes (max 5 s)
+        long deadline = System.currentTimeMillis() + 5_000;
+        ReportJob job = null;
+        while (System.currentTimeMillis() < deadline) {
+            job = reportJobRepository.findById(jobId).orElse(null);
+            if (job != null
+                    && job.getStatut() != StatutRapport.EN_ATTENTE
+                    && job.getStatut() != StatutRapport.EN_COURS) {
+                break;
+            }
+            Thread.sleep(200);
+        }
+
+        assertNotNull(job, "ReportJob should exist in DB");
+        assertEquals(StatutRapport.TERMINE, job.getStatut(),
+                "Async generation should complete with TERMINE — got: "
+                        + (job != null ? job.getStatut() : "null"));
+        assertNotNull(job.getFilePath(), "filePath must be set after generation");
+        assertNotNull(job.getDateGeneration(), "dateGeneration must be set");
     }
 
     // ─── US-32 : Consulter les jobs ────────────────────────────────────────────
@@ -108,6 +159,19 @@ class ReportingControllerTest {
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
+
+    private void cleanUsers() {
+        userRepository.findByEmail("rh@reporting.test").ifPresent(u -> {
+            reportJobRepository.findByDemandeurIdOrderByCreatedAtDesc(u.getId(), Pageable.unpaged())
+                    .forEach(reportJobRepository::delete);
+            refreshTokenRepository.deleteByUser(u);
+            userRepository.delete(u);
+        });
+        userRepository.findByEmail("stg@reporting.test").ifPresent(u -> {
+            refreshTokenRepository.deleteByUser(u);
+            userRepository.delete(u);
+        });
+    }
 
     private String loginAndGetToken(String email, String password) throws Exception {
         MvcResult result = mockMvc.perform(post("/auth/login")
