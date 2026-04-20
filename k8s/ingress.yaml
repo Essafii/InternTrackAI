@@ -1,0 +1,46 @@
+# ─── Ingress InternTrackAI — Staging ──────────────────────────────────────────
+# Prérequis Minikube : minikube addons enable ingress
+# Ajouter dans /etc/hosts (ou C:\Windows\System32\drivers\etc\hosts) :
+#   $(minikube ip)  api.interntrackai.local  app.interntrackai.local
+#
+# Routes :
+#   http://api.interntrackai.local/api/*  → backend:8080
+#   http://app.interntrackai.local/*       → (frontend — activer quand déployé)
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: interntrackai-ingress
+  namespace: staging
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-Frame-Options "DENY" always;
+      add_header X-XSS-Protection "1; mode=block" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: api.interntrackai.local
+      http:
+        paths:
+          - path: /api(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: interntrackai-backend-service
+                port:
+                  number: 8080
+          # Swagger accessible via Ingress (staging uniquement)
+          - path: /swagger-ui(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: interntrackai-backend-service
+                port:
+                  number: 8080
