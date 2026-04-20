@@ -1,0 +1,152 @@
+# ─── Grafana Alerting — InternTrackAI ─────────────────────────────────────────
+# Règles provisionnées automatiquement au démarrage de Grafana.
+# Prometheus doit scraper /api/actuator/prometheus.
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: InternTrackAI Backend
+    folder: InternTrackAI
+    interval: 1m
+    rules:
+
+      # ── Backend DOWN ──────────────────────────────────────────────────────────
+      - uid: backend-down
+        title: Backend InternTrackAI DOWN
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: up{job="interntrackai-backend"} == 0
+              instant: true
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: classic_conditions
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 1m
+        annotations:
+          summary: "Le backend InternTrackAI ne répond plus"
+          description: "L'endpoint /api/actuator/prometheus n'est plus scrapé depuis 1 minute."
+        labels:
+          severity: critical
+          team: devops
+
+      # ── Heap JVM > 80% ────────────────────────────────────────────────────────
+      - uid: jvm-heap-high
+        title: JVM Heap Usage > 80%
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: >
+                jvm_memory_used_bytes{area="heap"}
+                / jvm_memory_max_bytes{area="heap"} * 100 > 80
+              instant: true
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: classic_conditions
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "Utilisation JVM Heap > 80% pendant 5 min"
+          description: "Risque de OutOfMemoryError — vérifier les fuites mémoire ou augmenter les limits K8s."
+        labels:
+          severity: warning
+          team: devops
+
+      # ── HTTP Error Rate > 5% ──────────────────────────────────────────────────
+      - uid: http-error-rate
+        title: HTTP Error Rate > 5%
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: >
+                rate(http_server_requests_seconds_count{status=~"5.."}[5m])
+                / rate(http_server_requests_seconds_count[5m]) * 100 > 5
+              instant: true
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: classic_conditions
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+        noDataState: NoData
+        execErrState: Error
+        for: 3m
+        annotations:
+          summary: "Taux d'erreurs HTTP 5xx > 5% sur 5 min"
+          description: "Vérifier les logs backend et l'état de PostgreSQL."
+        labels:
+          severity: warning
+          team: devops
+
+      # ── CPU Pod > 80% ─────────────────────────────────────────────────────────
+      - uid: pod-cpu-high
+        title: Backend Pod CPU > 80%
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: >
+                rate(container_cpu_usage_seconds_total{container="backend"}[5m]) * 100 > 80
+              instant: true
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: classic_conditions
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "CPU Pod backend > 80% pendant 5 min"
+          description: "L'HPA devrait déclencher un scale-out. Vérifier si hpa.yaml est appliqué."
+        labels:
+          severity: warning
+          team: devops

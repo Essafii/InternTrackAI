@@ -1,0 +1,91 @@
+# ─── CronJob Backup PostgreSQL — staging ──────────────────────────────────────
+# Déclenché toutes les nuits à 02:00 UTC.
+# Dump compressé → stocké dans un volume local (PVC).
+# Pour la production : remplacer le volume local par un bucket S3/MinIO.
+#
+# Prérequis :
+#   kubectl create secret generic postgres-secrets ... (déjà créé pour le backend)
+#
+# Vérifier l'exécution :
+#   kubectl get jobs -n staging
+#   kubectl logs job/<job-name> -n staging
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-backup-pvc
+  namespace: staging
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  namespace: staging
+spec:
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: postgres-backup
+              image: postgres:15-alpine
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+                  BACKUP_FILE="/backups/interntrackai_${TIMESTAMP}.sql.gz"
+                  echo "Démarrage backup : $BACKUP_FILE"
+                  PGPASSWORD=$POSTGRES_PASSWORD pg_dump \
+                    -h postgres \
+                    -U $POSTGRES_USER \
+                    -d $POSTGRES_DB \
+                    --clean \
+                    --if-exists \
+                    | gzip > $BACKUP_FILE
+                  echo "Backup terminé : $(ls -lh $BACKUP_FILE)"
+                  # Nettoyage : garder les 14 derniers fichiers
+                  ls -t /backups/*.sql.gz | tail -n +15 | xargs rm -f || true
+                  echo "Fichiers backup conservés : $(ls /backups/*.sql.gz | wc -l)"
+              env:
+                - name: POSTGRES_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-secrets
+                      key: POSTGRES_USER
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-secrets
+                      key: POSTGRES_PASSWORD
+                - name: POSTGRES_DB
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-secrets
+                      key: POSTGRES_DB
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backups
+              resources:
+                requests:
+                  cpu: "100m"
+                  memory: "128Mi"
+                limits:
+                  cpu: "300m"
+                  memory: "256Mi"
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: postgres-backup-pvc
