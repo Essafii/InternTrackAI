@@ -33,4 +33,7 @@ public interface StagiaireRepository extends JpaRepository<Stagiaire, Long> {
 
     @Query("SELECT COUNT(s) FROM Stagiaire s WHERE s.statut = :statut")
     long countByStatut(@Param("statut") StatutStagiaire statut);
+
+    @Query("SELECT COUNT(s) + 1 FROM Stagiaire s WHERE s.scoreCalcule > :score AND s.statut IN ('ACTIF', 'TERMINE')")
+    long getRankByScore(@Param("score") Double score);
 }

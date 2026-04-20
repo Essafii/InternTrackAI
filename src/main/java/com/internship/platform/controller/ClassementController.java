@@ -1,12 +1,9 @@
 package com.internship.platform.controller;
 
 import com.internship.platform.dto.classement.ClassementDto;
-import com.internship.platform.entity.Stagiaire;
 import com.internship.platform.entity.enums.Role;
-import com.internship.platform.exception.BusinessException;
-import com.internship.platform.exception.ResourceNotFoundException;
-import com.internship.platform.repository.StagiaireRepository;
 import com.internship.platform.security.CustomUserDetails;
+import org.springframework.security.access.AccessDeniedException;
 import com.internship.platform.service.ClassementService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,7 +22,6 @@ import java.util.List;
 public class ClassementController {
 
     private final ClassementService classementService;
-    private final StagiaireRepository stagiaireRepository;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('RH', 'ADMIN', 'ENCADRANT')")
@@ -34,11 +30,28 @@ public class ClassementController {
             @RequestParam(required = false) Long encadrantId,
             @RequestParam(required = false) String equipe,
             @AuthenticationPrincipal CustomUserDetails principal) {
-        if (encadrantId != null
-                && principal.getUser().getRole() == Role.ENCADRANT
-                && !principal.getUser().getId().equals(encadrantId)) {
-            throw new BusinessException("Accès refusé : vous ne pouvez consulter que le classement de votre propre équipe");
+
+        // ─── Encadrant isolation: force their own encadrantId, block equipe bypass ───
+        if (principal.getUser().getRole() == Role.ENCADRANT) {
+            Long ownId = principal.getUser().getId();
+
+            // If encadrantId is provided but doesn't match their own → deny
+            if (encadrantId != null && !ownId.equals(encadrantId)) {
+                throw new AccessDeniedException(
+                        "Accès refusé : vous ne pouvez consulter que le classement de votre propre équipe");
+            }
+
+            // If equipe is provided without encadrantId, the encadrant could see
+            // stagiaires outside their scope → deny
+            if (equipe != null && !equipe.isBlank() && encadrantId == null) {
+                throw new AccessDeniedException(
+                        "Accès refusé : les encadrants ne peuvent pas filtrer par équipe sans restriction d'encadrant");
+            }
+
+            // Force isolation: always restrict to own encadrantId
+            encadrantId = ownId;
         }
+
         return ResponseEntity.ok(classementService.getClassement(encadrantId, equipe));
     }
 
@@ -47,12 +60,6 @@ public class ClassementController {
     @Operation(summary = "Rang et score du stagiaire connecté")
     public ResponseEntity<ClassementDto> getMyRank(
             @AuthenticationPrincipal CustomUserDetails principal) {
-        Stagiaire stagiaire = stagiaireRepository.findByUserId(principal.getUser().getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Stagiaire non trouvé pour cet utilisateur"));
-        List<ClassementDto> all = classementService.getClassement(null, null);
-        return ResponseEntity.ok(all.stream()
-                .filter(d -> d.getStagiaireId().equals(stagiaire.getId()))
-                .findFirst()
-                .orElseGet(() -> classementService.computeScore(stagiaire)));
+        return ResponseEntity.ok(classementService.getMyRank(principal.getUser().getId()));
     }
 }

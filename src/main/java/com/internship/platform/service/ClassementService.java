@@ -3,9 +3,11 @@ package com.internship.platform.service;
 import com.internship.platform.dto.classement.ClassementDto;
 import com.internship.platform.entity.Stagiaire;
 import com.internship.platform.entity.enums.StatutStagiaire;
+import com.internship.platform.exception.ResourceNotFoundException;
 import com.internship.platform.repository.StagiaireRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.List;
@@ -39,6 +41,28 @@ public class ClassementService {
             classement.get(i).setRang(i + 1);
         }
         return classement;
+    }
+
+    /**
+     * DB-level rank calculation — O(1) memory instead of loading all stagiaires.
+     * Fetches the stagiaire's scoreCalcule, delegates rank counting to a JPQL COUNT query.
+     */
+    @Transactional
+    public ClassementDto getMyRank(Long userId) {
+        Stagiaire stagiaire = stagiaireRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Stagiaire non trouvé pour cet utilisateur"));
+
+        // Compute live score and persist it for the rank query
+        ScoringResult result = scoringDomainService.computeScore(stagiaire.getId());
+        stagiaire.setScoreCalcule(result.scoreGlobal());
+        stagiaireRepository.save(stagiaire);
+
+        // DB-level rank: COUNT of stagiaires with higher score + 1
+        long rank = stagiaireRepository.getRankByScore(stagiaire.getScoreCalcule());
+
+        ClassementDto dto = toDto(stagiaire);
+        dto.setRang((int) rank);
+        return dto;
     }
 
     public ClassementDto computeScore(Stagiaire s) {
