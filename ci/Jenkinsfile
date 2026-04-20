@@ -67,17 +67,17 @@ pipeline {
                         sh '''
                         echo "Analyse SonarQube..."
                         chmod +x mvnw || true
-                        if [ -f mvnw ]; then
-                          ./mvnw -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
-                            -Dsonar.projectKey=$SONAR_PROJECT_KEY \
-                            -Dsonar.projectName="$SONAR_PROJECT_NAME" \
-                            -Dsonar.token=$SONAR_TOKEN
-                        else
-                          mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
-                            -Dsonar.projectKey=$SONAR_PROJECT_KEY \
-                            -Dsonar.projectName="$SONAR_PROJECT_NAME" \
-                            -Dsonar.token=$SONAR_TOKEN
-                        fi
+                        # sonar.coverage.exclusions : exclut config/entity/dto/exception/seed (pas de logique testable)
+                        # sonar.cpd.exclusions : exclut dto/entity des détections de duplication (Lombok @Data)
+                        SONAR_EXCLUSIONS="**/config/**,**/entity/**,**/dto/**,**/exception/**,**/seed/**,**/InternshipPlatformApplication.java"
+                        MVN_CMD="mvn"
+                        [ -f mvnw ] && MVN_CMD="./mvnw"
+                        $MVN_CMD -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+                          -Dsonar.projectKey=$SONAR_PROJECT_KEY \
+                          -Dsonar.projectName="$SONAR_PROJECT_NAME" \
+                          -Dsonar.token=$SONAR_TOKEN \
+                          -Dsonar.coverage.exclusions="$SONAR_EXCLUSIONS" \
+                          -Dsonar.cpd.exclusions="**/dto/**,**/entity/**"
                         '''
                     }
                 }
