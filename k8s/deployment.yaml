@@ -18,6 +18,11 @@ spec:
       labels:
         app: interntrackai-backend
     spec:
+      serviceAccountName: interntrackai-backend-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
         - name: backend
           image: zakariael3/interntrackai-backend:latest
@@ -67,6 +72,11 @@ spec:
             periodSeconds: 20
             timeoutSeconds: 5
             failureThreshold: 6
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
           resources:
             requests:
               cpu: "100m"

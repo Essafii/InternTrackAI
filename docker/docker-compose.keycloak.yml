@@ -1,0 +1,58 @@
+# ─── Keycloak — Développement local InternTrackAI ──────────────────────────────
+# Usage :
+#   docker compose -f docker/docker-compose.keycloak.yml up -d
+#
+# Accès console admin : http://localhost:8180
+# Credentials admin   : admin / admin  (ne pas utiliser en prod)
+#
+# Après démarrage → créer manuellement dans la console :
+#   1. Realm : interntrackai
+#   2. Client : interntrackai-backend  (type OpenID Connect, confidential)
+#   3. Copier le Client Secret généré dans .env → KEYCLOAK_CLIENT_SECRET
+#
+# Note : l'intégration Spring Security avec Keycloak est hors périmètre DevOps.
+# Ce fichier fournit uniquement l'infrastructure Keycloak locale.
+# Le backend doit ajouter spring-boot-starter-oauth2-resource-server
+# pour valider les tokens Keycloak (tâche backend).
+
+services:
+
+  keycloak-db:
+    image: postgres:15-alpine
+    container_name: interntrackai-keycloak-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak_dev}
+    volumes:
+      - keycloak_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: interntrackai-keycloak
+    restart: unless-stopped
+    command: start-dev
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak_dev}
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HTTP_PORT: 8180
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+    ports:
+      - "8180:8180"
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+
+volumes:
+  keycloak_db_data:

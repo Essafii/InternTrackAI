@@ -8,7 +8,11 @@ pipeline {
     }
 
     environment {
-        IMAGE_NAME = 'zakariael3/interntrackai-backend:latest'
+        // ── Image versioning (Sprint 3) ─────────────────────────────────────
+        // IMAGE_TAG  = <git-sha-court>-<build-number>  → tracabilite exacte
+        // IMAGE_NAME = tag versionne — utilise pour le push et le rollout
+        // IMAGE_LATEST = alias :latest — mis a jour a chaque build main/develop
+        IMAGE_BASE   = 'zakariael3/interntrackai-backend'
         SONAR_SERVER = 'sonarqube-local'
         SONAR_PROJECT_KEY = 'interntrackai-backend'
         SONAR_PROJECT_NAME = 'InternTrackAI Backend'
@@ -24,6 +28,14 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
+                script {
+                    // Calcul du tag versionné après checkout (GIT_COMMIT disponible)
+                    def shortSha = sh(script: "git rev-parse --short=8 HEAD", returnStdout: true).trim()
+                    env.IMAGE_TAG    = "${shortSha}-${BUILD_NUMBER}"
+                    env.IMAGE_NAME   = "${IMAGE_BASE}:${env.IMAGE_TAG}"
+                    env.IMAGE_LATEST = "${IMAGE_BASE}:latest"
+                    echo "Image versionnee : ${env.IMAGE_NAME}"
+                }
             }
         }
 
@@ -160,9 +172,14 @@ pipeline {
         stage('Docker Build') {
             steps {
                 sh '''
-                echo "Build image Docker..."
-                docker pull eclipse-temurin:17-jdk-alpine
-                docker build --no-cache -t $IMAGE_NAME -f $DOCKERFILE_PATH .
+                echo "Build image Docker : $IMAGE_NAME"
+                docker pull eclipse-temurin:17-jdk-alpine || true
+                docker build --no-cache \
+                  -t $IMAGE_NAME \
+                  -t $IMAGE_LATEST \
+                  --label "git.commit=$IMAGE_TAG" \
+                  --label "build.number=$BUILD_NUMBER" \
+                  -f $DOCKERFILE_PATH .
                 '''
             }
         }
@@ -190,6 +207,30 @@ pipeline {
             }
         }
 
+        stage('SBOM Generation') {
+            // Sprint 3 : génération du Software Bill of Materials (CycloneDX)
+            // Permet de tracer la composition exacte de l'image livrée
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                    sh '''
+                    echo "Generation SBOM (CycloneDX) pour $IMAGE_NAME..."
+                    docker run --rm \
+                      -v /var/run/docker.sock:/var/run/docker.sock \
+                      aquasec/trivy:$TRIVY_VERSION image \
+                      --format cyclonedx \
+                      --output /dev/stdout \
+                      $IMAGE_NAME > sbom-cyclonedx.json
+                    echo "SBOM genere : $(wc -l < sbom-cyclonedx.json) lignes"
+                    '''
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts allowEmptyArchive: true, artifacts: 'sbom-cyclonedx.json'
+                }
+            }
+        }
+
         stage('Docker Push') {
             steps {
                 withCredentials([usernamePassword(
@@ -198,9 +239,11 @@ pipeline {
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
                     sh '''
-                    echo "Push image DockerHub..."
+                    echo "Push image DockerHub : $IMAGE_NAME et $IMAGE_LATEST"
                     echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                    docker push $IMAGE_NAME
+                    docker push $IMAGE_NAME    # tag versionne (git-sha-build)
+                    docker push $IMAGE_LATEST  # alias :latest
+                    echo "Images pushees avec succes"
                     '''
                 }
             }
@@ -216,17 +259,19 @@ pipeline {
                     kubectl get ns $K8S_NAMESPACE || kubectl create ns $K8S_NAMESPACE
 
                     kubectl apply -f k8s/configmap.yaml -n $K8S_NAMESPACE
+                    kubectl apply -f k8s/serviceaccount.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/postgres-pvc.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/postgres.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/deployment.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/service.yaml -n $K8S_NAMESPACE
+                    kubectl apply -f k8s/ingress.yaml -n $K8S_NAMESPACE
                     # MinIO desactive : backend n'utilise pas encore S3 (io.minio absent du pom.xml)
-                    # Reactiver quand l'integration backend sera faite
                     # kubectl apply -f k8s/minio.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/prometheus.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/fluentbit.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/hpa.yaml -n $K8S_NAMESPACE
 
+                    # Deploy avec image versionnee (Sprint 3 : plus de :latest en deploy)
                     kubectl set image deployment/interntrackai-backend backend=$IMAGE_NAME -n $K8S_NAMESPACE
 
                     kubectl rollout status deployment/postgres -n $K8S_NAMESPACE --timeout=180s

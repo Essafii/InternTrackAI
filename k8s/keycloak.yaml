@@ -1,0 +1,158 @@
+# ─── Keycloak — Staging Kubernetes ────────────────────────────────────────────
+# STATUT : infrastructure provisionnée — intégration backend NON activée
+#
+# Prérequis avant apply :
+#   kubectl create secret generic keycloak-secrets \
+#     --from-literal=KEYCLOAK_ADMIN_PASSWORD=CHANGE_ME \
+#     --from-literal=KC_DB_PASSWORD=CHANGE_ME \
+#     -n staging
+#
+# Note : le backend doit ajouter l'intégration OAuth2 Resource Server
+# pour utiliser Keycloak comme fournisseur d'identité (hors périmètre DevOps).
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: keycloak-db-pvc
+  namespace: staging
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak-db
+  namespace: staging
+  labels:
+    app: keycloak-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak-db
+  template:
+    metadata:
+      labels:
+        app: keycloak-db
+    spec:
+      containers:
+        - name: keycloak-db
+          image: postgres:15-alpine
+          env:
+            - name: POSTGRES_DB
+              value: keycloak
+            - name: POSTGRES_USER
+              value: keycloak
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-secrets
+                  key: KC_DB_PASSWORD
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: keycloak-db-storage
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "keycloak", "-d", "keycloak"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: keycloak-db-storage
+          persistentVolumeClaim:
+            claimName: keycloak-db-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak-db
+  namespace: staging
+spec:
+  selector:
+    app: keycloak-db
+  ports:
+    - port: 5432
+      targetPort: 5432
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  namespace: staging
+  labels:
+    app: keycloak
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:24.0
+          args: ["start-dev"]
+          env:
+            - name: KC_DB
+              value: postgres
+            - name: KC_DB_URL
+              value: jdbc:postgresql://keycloak-db:5432/keycloak
+            - name: KC_DB_USERNAME
+              value: keycloak
+            - name: KC_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-secrets
+                  key: KC_DB_PASSWORD
+            - name: KEYCLOAK_ADMIN
+              value: admin
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-secrets
+                  key: KEYCLOAK_ADMIN_PASSWORD
+            - name: KC_HTTP_PORT
+              value: "8180"
+            - name: KC_HOSTNAME_STRICT
+              value: "false"
+          ports:
+            - containerPort: 8180
+          readinessProbe:
+            httpGet:
+              path: /realms/master
+              port: 8180
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 10
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak-service
+  namespace: staging
+spec:
+  selector:
+    app: keycloak
+  ports:
+    - port: 8180
+      targetPort: 8180
+  type: NodePort
