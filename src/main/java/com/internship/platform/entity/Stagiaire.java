@@ -58,6 +58,10 @@ public class Stagiaire extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "score_calcule")
+    @Builder.Default
+    private Double scoreCalcule = 0.0;
+
     @OneToMany(mappedBy = "stagiaire", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Absence> absences = new ArrayList<>();
