@@ -258,6 +258,7 @@ pipeline {
 
                     kubectl get ns $K8S_NAMESPACE || kubectl create ns $K8S_NAMESPACE
 
+                    kubectl apply -f k8s/limitrange.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/configmap.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/serviceaccount.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/postgres-pvc.yaml -n $K8S_NAMESPACE
@@ -315,6 +316,19 @@ pipeline {
         stage('Report') {
             steps {
                 echo 'Generation du rapport...'
+                script {
+                    // Résumé lisible dans la console Jenkins
+                    echo """
+╔══════════════════════════════════════════════════════════╗
+║  InternTrackAI — Rapport de pipeline                     ║
+╠══════════════════════════════════════════════════════════╣
+║  Build        : #${BUILD_NUMBER}                         ║
+║  Image        : ${env.IMAGE_NAME ?: IMAGE_BASE + ':latest'}  ║
+║  Namespace    : ${K8S_NAMESPACE}                         ║
+║  Statut       : ${currentBuild.currentResult}            ║
+╚══════════════════════════════════════════════════════════╝
+"""
+                }
             }
         }
     }
@@ -324,10 +338,34 @@ pipeline {
             echo 'Pipeline executee avec succes.'
         }
         unstable {
-            echo 'Pipeline terminee avec avertissements.'
+            echo 'Pipeline terminee avec avertissements (OWASP/Trivy/Semgrep — voir artefacts).'
         }
         failure {
-            echo 'La pipeline a echoue.'
+            // Sprint 4 : notification Teams Webhook sur echec
+            // Prérequis Jenkins : credential de type Secret text, id = teams-webhook-url
+            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                withCredentials([string(credentialsId: 'teams-webhook-url', variable: 'TEAMS_URL')]) {
+                    sh '''
+                    PAYLOAD="{
+                      \\"@type\\": \\"MessageCard\\",
+                      \\"@context\\": \\"http://schema.org/extensions\\",
+                      \\"themeColor\\": \\"FF0000\\",
+                      \\"summary\\": \\"Pipeline FAILED\\",
+                      \\"sections\\": [{
+                        \\"activityTitle\\": \\"Pipeline InternTrackAI ECHOUEE\\",
+                        \\"activityText\\": \\"Build #${BUILD_NUMBER} — image ${IMAGE_NAME:-latest} — statut FAILURE\\",
+                        \\"facts\\": [
+                          {\\"name\\": \\"Branch\\", \\"value\\": \\"${GIT_BRANCH:-develop}\\"},
+                          {\\"name\\": \\"Build\\", \\"value\\": \\"#${BUILD_NUMBER}\\"},
+                          {\\"name\\": \\"Lien\\", \\"value\\": \\"${BUILD_URL}\\"}
+                        ]
+                      }]
+                    }"
+                    curl -sf -X POST -H "Content-Type: application/json" \
+                      -d "$PAYLOAD" "$TEAMS_URL" || true
+                    '''
+                }
+            }
         }
         always {
             sh 'docker logout || true'
