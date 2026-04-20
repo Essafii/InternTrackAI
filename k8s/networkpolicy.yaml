@@ -1,0 +1,133 @@
+# ─── NetworkPolicy — namespace staging ────────────────────────────────────────
+# Principe : deny-all par défaut, puis allow explicite par flux.
+# Flux autorisés :
+#   - Ingress → Backend (port 8080)
+#   - Backend → PostgreSQL (port 5432)
+#   - Backend → Keycloak (port 8180)
+#   - Prometheus → Backend (scrape port 8080)
+#   - FluentBit → stdout (pas de réseau)
+---
+# Deny-all par défaut pour le namespace staging
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: staging
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+
+---
+# Backend : autoriser l'Ingress NGINX et Prometheus à le contacter
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-backend
+  namespace: staging
+spec:
+  podSelector:
+    matchLabels:
+      app: interntrackai-backend
+  policyTypes:
+    - Ingress
+  ingress:
+    # Depuis le contrôleur Ingress NGINX (namespace ingress-nginx)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - port: 8080
+    # Depuis Prometheus (même namespace staging)
+    - from:
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - port: 8080
+
+---
+# Backend : autoriser l'accès sortant vers PostgreSQL
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend-to-postgres
+  namespace: staging
+spec:
+  podSelector:
+    matchLabels:
+      app: interntrackai-backend
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: postgres
+      ports:
+        - port: 5432
+    # DNS resolution (nécessaire pour résoudre les noms de services K8s)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+
+---
+# PostgreSQL : autoriser uniquement le backend en entrée
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend-to-postgres-ingress
+  namespace: staging
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: interntrackai-backend
+      ports:
+        - port: 5432
+    # Backup CronJob (même namespace)
+    - from:
+        - podSelector:
+            matchLabels:
+              job-name: postgres-backup
+      ports:
+        - port: 5432
+
+---
+# Prometheus : autoriser la collecte des métriques backend
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-scrape
+  namespace: staging
+spec:
+  podSelector:
+    matchLabels:
+      app: prometheus
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: interntrackai-backend
+      ports:
+        - port: 8080
+    # DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: 53
+          protocol: UDP

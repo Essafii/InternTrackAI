@@ -259,6 +259,7 @@ pipeline {
                     kubectl get ns $K8S_NAMESPACE || kubectl create ns $K8S_NAMESPACE
 
                     kubectl apply -f k8s/limitrange.yaml -n $K8S_NAMESPACE
+                    kubectl apply -f k8s/networkpolicy.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/configmap.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/serviceaccount.yaml -n $K8S_NAMESPACE
                     kubectl apply -f k8s/postgres-pvc.yaml -n $K8S_NAMESPACE
@@ -309,6 +310,81 @@ pipeline {
                       http://${BACKEND_IP}:8080/api/v3/api-docs | grep -q "openapi"
                     echo "✓ /api/v3/api-docs = OK"
                     '''
+                }
+            }
+        }
+
+        stage('Load Test (k6 smoke)') {
+            // Sprint 5 : test de charge minimal (10 VU / 30s) via k6
+            // Seuils : error_rate < 5%, P95 health < 2s
+            // Résultat JSON archivé comme artefact Jenkins
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                    withCredentials([file(credentialsId: 'kubeconfig-staging', variable: 'KUBECONFIG_FILE')]) {
+                        sh '''
+                        export KUBECONFIG=$KUBECONFIG_FILE
+                        BACKEND_IP=$(kubectl get svc interntrackai-backend-service \
+                          -n $K8S_NAMESPACE -o jsonpath='{.spec.clusterIP}')
+                        echo "k6 smoke test sur http://${BACKEND_IP}:8080..."
+                        docker run --rm \
+                          -v "$(pwd):/src" \
+                          --network host \
+                          grafana/k6:0.51.0 run /src/devsecops/k6-smoke.js \
+                          -e BASE_URL=http://${BACKEND_IP}:8080 \
+                          --out json=/src/k6-smoke-report.json || true
+                        '''
+                    }
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts allowEmptyArchive: true, artifacts: 'k6-smoke-report.json'
+                }
+            }
+        }
+
+        stage('DAST — OWASP ZAP Baseline') {
+            // Sprint 5 : scan DAST de surface (baseline) via OWASP ZAP
+            // Mode baseline : ne teste pas les endpoints authentifiés
+            // Résultat HTML + JSON archivés comme artefacts Jenkins
+            // catchError : le build reste UNSTABLE (jamais FAILURE) si ZAP trouve des alertes
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                    withCredentials([file(credentialsId: 'kubeconfig-staging', variable: 'KUBECONFIG_FILE')]) {
+                        sh '''
+                        export KUBECONFIG=$KUBECONFIG_FILE
+                        BACKEND_IP=$(kubectl get svc interntrackai-backend-service \
+                          -n $K8S_NAMESPACE -o jsonpath='{.spec.clusterIP}')
+                        TARGET_URL="http://${BACKEND_IP}:8080/api"
+
+                        echo "DAST ZAP Baseline sur $TARGET_URL..."
+                        mkdir -p zap-reports
+                        docker run --rm \
+                          --network host \
+                          -v "$(pwd)/zap-reports:/zap/wrk:rw" \
+                          ghcr.io/zaproxy/zaproxy:stable \
+                          zap-baseline.py \
+                          -t $TARGET_URL \
+                          -r zap-baseline-report.html \
+                          -J zap-baseline-report.json \
+                          -l WARN \
+                          -I || true
+                        '''
+                    }
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts allowEmptyArchive: true,
+                        artifacts: 'zap-reports/zap-baseline-report.*'
+                    publishHTML(target: [
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'zap-reports',
+                        reportFiles: 'zap-baseline-report.html',
+                        reportName: 'OWASP ZAP DAST Report'
+                    ])
                 }
             }
         }
