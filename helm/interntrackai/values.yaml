@@ -1,0 +1,64 @@
+# ─── values.yaml — Valeurs par défaut (dev/staging) ──────────────────────────
+# Surcharger avec : helm install ... -f values-prod.yaml
+
+image:
+  repository: zakariael3/interntrackai-backend
+  tag: latest
+  pullPolicy: Always
+
+replicaCount: 1
+
+namespace: staging
+
+service:
+  type: NodePort
+  port: 8080
+
+ingress:
+  enabled: true
+  className: nginx
+  host: api.interntrackai.local
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "256Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+postgres:
+  host: postgres
+  port: 5432
+  database: interntrackai
+  storageSize: 2Gi
+
+monitoring:
+  enabled: true
+  prometheus:
+    scrapeInterval: 15s
+
+backup:
+  enabled: true
+  schedule: "0 2 * * *"
+  retentionCount: 14
+
+keycloak:
+  enabled: false  # Activer quand l'intégration backend est prête
+
+security:
+  networkPolicy: true
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
