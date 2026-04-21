@@ -1,0 +1,23 @@
+InternTrackAI Backend déployé avec succès !
+
+Release  : {{ .Release.Name }}
+Namespace: {{ .Values.namespace }}
+Image    : {{ .Values.image.repository }}:{{ .Values.image.tag }}
+
+Accès API :
+{{- if .Values.ingress.enabled }}
+  http://{{ .Values.ingress.host }}/api/swagger-ui.html
+{{- else }}
+  kubectl port-forward svc/{{ .Release.Name }}-backend-service 8080:8080 -n {{ .Values.namespace }}
+  http://localhost:8080/api/swagger-ui.html
+{{- end }}
+
+Health check :
+  kubectl get pods -n {{ .Values.namespace }} -l app={{ .Release.Name }}-backend
+
+HPA :
+{{- if .Values.autoscaling.enabled }}
+  kubectl get hpa -n {{ .Values.namespace }}
+{{- else }}
+  HPA désactivé (autoscaling.enabled=false)
+{{- end }}

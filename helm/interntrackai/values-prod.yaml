@@ -1,0 +1,50 @@
+# ─── values-prod.yaml — Surcharge production ──────────────────────────────────
+# Usage :
+#   helm upgrade --install interntrackai ./helm/interntrackai \
+#     -f helm/interntrackai/values-prod.yaml \
+#     --set image.tag=<git-sha>-<build>
+#     -n production
+
+image:
+  pullPolicy: Always
+  # tag : à fournir au déploiement via --set image.tag=<versioned-tag>
+
+replicaCount: 2
+
+namespace: production
+
+service:
+  type: ClusterIP   # Exposition via Ingress uniquement en prod
+
+ingress:
+  host: api.interntrackai.dxc.ma
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    # TLS (certificat géré par cert-manager ou Let's Encrypt)
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+
+resources:
+  requests:
+    cpu: "200m"
+    memory: "512Mi"
+  limits:
+    cpu: "1"
+    memory: "1Gi"
+
+autoscaling:
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 60
+
+postgres:
+  storageSize: 10Gi
+
+backup:
+  retentionCount: 30
+
+keycloak:
+  enabled: true
+
+monitoring:
+  enabled: true
