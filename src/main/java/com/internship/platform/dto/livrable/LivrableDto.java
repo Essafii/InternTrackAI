@@ -18,7 +18,7 @@ public class LivrableDto {
     private String statut;
     private String commentaireEncadrant;
     private LocalDateTime dateValidation;
-    private Double scoreIA;
-    private String feedbackIA;
-    private String niveauQualiteIA;
+    private Double scoreCalcule;
+    private String feedbackScore;
+    private String niveauQualite;
 }

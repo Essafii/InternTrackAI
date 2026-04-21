@@ -60,13 +60,12 @@ public class Livrable extends BaseEntity {
     @Column
     private LocalDateTime dateValidation;
 
-    // AI pre-evaluation fields
-    @Column
-    private Double scoreIA;
+    @Column(name = "score_calcule")
+    private Double scoreCalcule;
 
-    @Column(columnDefinition = "TEXT")
-    private String feedbackIA;
+    @Column(name = "feedback_score", columnDefinition = "TEXT")
+    private String feedbackScore;
 
-    @Column
-    private String niveauQualiteIA;
+    @Column(name = "niveau_qualite")
+    private String niveauQualite;
 }

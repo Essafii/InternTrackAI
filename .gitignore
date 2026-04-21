@@ -79,3 +79,6 @@ CLAUDE.md
 # ─── Local dev overrides (ne pas commiter) ───────────────────────────────────
 docker/docker-compose.override.yml
 docker/.env
+
+# Test-generated report PDFs
+test-uploads/
